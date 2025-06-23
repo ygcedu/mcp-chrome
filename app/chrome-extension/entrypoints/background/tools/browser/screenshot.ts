@@ -2,12 +2,14 @@ import { createErrorResponse, ToolResult } from '@/common/tool-handler';
 import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from 'chrome-mcp-shared';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
-import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
+import { ERROR_MESSAGES } from '@/common/constants';
 import {
   canvasToDataURL,
   createImageBitmapFromUrl,
   cropAndResizeImage,
   stitchImages,
+  compressImageFromDataUrl,
+  type CompressionResult,
 } from '../../../../utils/image-utils';
 
 // Screenshot-specific constants
@@ -108,15 +110,36 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
 
       // 2. Process output
       if (storeBase64 === true) {
-        // Include base64 data in response (without prefix)
-        const base64Data = finalImageDataUrl.replace(/^data:image\/png;base64,/, '');
-        results.base64 = base64Data;
+        // Apply compression with default settings for base64 output
+        let processedImageDataUrl = finalImageDataUrl;
+        let compressionStats: CompressionResult | null = null;
+
+        try {
+          // Use default compression settings with 70% scaling for base64 output
+          const scaleFactor = 0.7; // Default 70% scaling to reduce base64 size
+          compressionStats = await compressImageFromDataUrl(finalImageDataUrl, {}, scaleFactor);
+          processedImageDataUrl = compressionStats.dataUrl;
+
+          this.logInfo(
+            `图片已缩放并压缩 (缩放${(scaleFactor * 100).toFixed(0)}%): ` +
+              `${compressionStats.originalSizeKB.toFixed(1)}KB → ${compressionStats.compressedSizeKB.toFixed(1)}KB ` +
+              `(压缩至原始大小的${(compressionStats.compressionRatio * 100).toFixed(1)}%, 质量: ${compressionStats.quality}, 格式: ${compressionStats.format})`,
+          );
+        } catch (error) {
+          console.warn('图片压缩失败，使用原始图片:', error);
+          // Fall back to original image if compression fails
+        }
+
+        // Extract base64 data and determine MIME type
+        const [mimeTypePart, base64Data] = processedImageDataUrl.split(',');
+        const mimeType = mimeTypePart.match(/data:([^;]+)/)?.[1] || 'image/png';
+
         return {
           content: [
             {
               type: 'image',
               data: base64Data,
-              mimeType: 'image/png',
+              mimeType,
             },
           ],
           isError: false,

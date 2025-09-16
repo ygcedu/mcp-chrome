@@ -10,7 +10,7 @@ const CHROME_EXTENSION_KEY = process.env.CHROME_EXTENSION_KEY;
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
-  modules: ['@wxt-dev/module-vue'],
+  modules: ['@wxt-dev/module-react'],
   runner: {
     // 方案1: 禁用自动启动（推荐）
     disabled: true,

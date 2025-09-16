@@ -1,7 +1,6 @@
 import { createErrorResponse, ToolResult } from '@/common/tool-handler';
 import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from 'chrome-mcp-shared';
-import { getMessage } from '@/utils/i18n';
 
 /**
  * Bookmark search tool parameters interface
@@ -153,7 +152,7 @@ async function createFolderPath(
     const bookmarkBarFolder = rootChildren.find(
       (node) =>
         !node.url &&
-        (node.title === getMessage('bookmarksBarLabel') ||
+        (node.title === '书签栏' ||
           node.title === 'Bookmarks bar' ||
           node.title === 'Bookmarks Bar'),
     );
@@ -435,7 +434,7 @@ class BookmarkAddTool extends BaseBrowserToolExecutor {
         const bookmarkBarFolder = rootChildren.find(
           (node) =>
             !node.url &&
-            (node.title === getMessage('bookmarksBarLabel') ||
+            (node.title === '书签栏' ||
               node.title === 'Bookmarks bar' ||
               node.title === 'Bookmarks Bar'),
         );

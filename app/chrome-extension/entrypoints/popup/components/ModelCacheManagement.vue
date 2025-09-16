@@ -1,12 +1,12 @@
 <template>
   <div class="model-cache-section">
-    <h2 class="section-title">{{ getMessage('modelCacheManagementLabel') }}</h2>
+    <h2 class="section-title">模型缓存管理</h2>
 
     <!-- Cache Statistics Grid -->
     <div class="stats-grid">
       <div class="stats-card">
         <div class="stats-header">
-          <p class="stats-label">{{ getMessage('cacheSizeLabel') }}</p>
+          <p class="stats-label">缓存大小</p>
           <span class="stats-icon orange">
             <DatabaseIcon />
           </span>
@@ -16,7 +16,7 @@
 
       <div class="stats-card">
         <div class="stats-header">
-          <p class="stats-label">{{ getMessage('cacheEntriesLabel') }}</p>
+          <p class="stats-label">缓存条目</p>
           <span class="stats-icon purple">
             <VectorIcon />
           </span>
@@ -27,7 +27,7 @@
 
     <!-- Cache Entries Details -->
     <div v-if="cacheStats && cacheStats.entries.length > 0" class="cache-details">
-      <h3 class="cache-details-title">{{ getMessage('cacheDetailsLabel') }}</h3>
+      <h3 class="cache-details-title">缓存详情</h3>
       <div class="cache-entries">
         <div v-for="entry in cacheStats.entries" :key="entry.url" class="cache-entry">
           <div class="entry-info">
@@ -35,7 +35,7 @@
             <div class="entry-details">
               <span class="entry-size">{{ entry.sizeMB }} MB</span>
               <span class="entry-age">{{ entry.age }}</span>
-              <span v-if="entry.expired" class="entry-expired">{{ getMessage('expiredLabel') }}</span>
+              <span v-if="entry.expired" class="entry-expired">已过期</span>
             </div>
           </div>
         </div>
@@ -44,19 +44,19 @@
 
     <!-- No Cache Message -->
     <div v-else-if="cacheStats && cacheStats.entries.length === 0" class="no-cache">
-      <p>{{ getMessage('noCacheDataMessage') }}</p>
+      <p>暂无缓存数据</p>
     </div>
 
     <!-- Loading State -->
     <div v-else-if="!cacheStats" class="loading-cache">
-      <p>{{ getMessage('loadingCacheInfoStatus') }}</p>
+      <p>正在加载缓存信息...</p>
     </div>
 
     <!-- Progress Indicator -->
     <ProgressIndicator
       v-if="isManagingCache"
       :visible="isManagingCache"
-      :text="isManagingCache ? getMessage('processingCacheStatus') : ''"
+      :text="isManagingCache ? '处理缓存中...' : ''"
       :showSpinner="true"
     />
 
@@ -64,14 +64,12 @@
     <div class="cache-actions">
       <div class="secondary-button" :disabled="isManagingCache" @click="$emit('cleanup-cache')">
         <span class="stats-icon"><DatabaseIcon /></span>
-        <span>{{
-          isManagingCache ? getMessage('cleaningStatus') : getMessage('cleanExpiredCacheButton')
-        }}</span>
+        <span>{{ isManagingCache ? '清理中...' : '清理过期缓存' }}</span>
       </div>
 
       <div class="danger-button" :disabled="isManagingCache" @click="$emit('clear-all-cache')">
         <span class="stats-icon"><TrashIcon /></span>
-        <span>{{ isManagingCache ? getMessage('clearingStatus') : getMessage('clearAllCacheButton') }}</span>
+        <span>{{ isManagingCache ? '清空中...' : '清空所有缓存' }}</span>
       </div>
     </div>
   </div>
@@ -80,7 +78,6 @@
 <script lang="ts" setup>
 import ProgressIndicator from './ProgressIndicator.vue';
 import { DatabaseIcon, VectorIcon, TrashIcon } from './icons';
-import { getMessage } from '@/utils/i18n';
 
 interface CacheEntry {
   url: string;

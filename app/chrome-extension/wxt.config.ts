@@ -28,9 +28,8 @@ export default defineConfig({
   manifest: {
     // Use environment variable for the key, fallback to undefined if not set
     key: CHROME_EXTENSION_KEY,
-    default_locale: 'zh_CN',
-    name: '__MSG_extensionName__',
-    description: '__MSG_extensionDescription__',
+    name: 'Chrome MCP Server',
+    description: 'Chrome MCP Server - 为AI提供浏览器控制能力',
     permissions: [
       'nativeMessaging',
       'tabs',
@@ -75,10 +74,6 @@ export default defineConfig({
           {
             src: ['workers/*'],
             dest: 'workers',
-          },
-          {
-            src: '_locales/**/*',
-            dest: '_locales',
           },
         ],
       }) as any,

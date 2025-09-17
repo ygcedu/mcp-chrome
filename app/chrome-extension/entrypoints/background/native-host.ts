@@ -14,7 +14,7 @@ let nativePort: chrome.runtime.Port | null = null;
 export const HOST_NAME = NATIVE_HOST.NAME;
 
 /**
- * Server status management interface
+ * 服务器状态管理接口
  */
 interface ServerStatus {
   isRunning: boolean;
@@ -28,7 +28,7 @@ let currentServerStatus: ServerStatus = {
 };
 
 /**
- * Save server status to chrome.storage
+ * 保存服务器状态到 chrome.storage
  */
 async function saveServerStatus(status: ServerStatus): Promise<void> {
   try {
@@ -39,7 +39,7 @@ async function saveServerStatus(status: ServerStatus): Promise<void> {
 }
 
 /**
- * Load server status from chrome.storage
+ * 从 chrome.storage 加载服务器状态
  */
 async function loadServerStatus(): Promise<ServerStatus> {
   try {
@@ -57,7 +57,7 @@ async function loadServerStatus(): Promise<ServerStatus> {
 }
 
 /**
- * Broadcast server status change to all listeners
+ * 向所有监听器广播服务器状态变化
  */
 function broadcastServerStatusChange(status: ServerStatus): void {
   chrome.runtime
@@ -66,12 +66,12 @@ function broadcastServerStatusChange(status: ServerStatus): void {
       payload: status,
     })
     .catch(() => {
-      // Ignore errors if no listeners are present
+      // 如果没有监听器，忽略错误
     });
 }
 
 /**
- * Connect to the native messaging host
+ * 连接到原生消息主机
  */
 export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT) {
   if (nativePort) {
@@ -85,8 +85,8 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT) {
       // chrome.notifications.create({
       //   type: NOTIFICATIONS.TYPE,
       //   iconUrl: chrome.runtime.getURL(ICONS.NOTIFICATION),
-      //   title: 'Message from native host',
-      //   message: `Received data from host: ${JSON.stringify(message)}`,
+      //   title: '来自原生主机的消息',
+      //   message: `从主机接收到数据: ${JSON.stringify(message)}`,
       //   priority: NOTIFICATIONS.PRIORITY,
       // });
 
@@ -133,18 +133,18 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT) {
         };
         await saveServerStatus(currentServerStatus);
         broadcastServerStatusChange(currentServerStatus);
-        console.log(`${SUCCESS_MESSAGES.SERVER_STARTED} on port ${port}`);
+        console.log(`${SUCCESS_MESSAGES.SERVER_STARTED} 端口 ${port}`);
       } else if (message.type === NativeMessageType.SERVER_STOPPED) {
         currentServerStatus = {
           isRunning: false,
-          port: currentServerStatus.port, // Keep last known port for reconnection
+          port: currentServerStatus.port, // 保留最后已知端口用于重连
           lastUpdated: Date.now(),
         };
         await saveServerStatus(currentServerStatus);
         broadcastServerStatusChange(currentServerStatus);
         console.log(SUCCESS_MESSAGES.SERVER_STOPPED);
       } else if (message.type === NativeMessageType.ERROR_FROM_NATIVE_HOST) {
-        console.error('Error from native host:', message.payload?.message || 'Unknown error');
+        console.error('来自原生主机的错误:', message.payload?.message || '未知错误');
       }
     });
 
@@ -160,10 +160,10 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT) {
 }
 
 /**
- * Initialize native host listeners and load initial state
+ * 初始化原生主机监听器并加载初始状态
  */
 export const initNativeHostListener = () => {
-  // Initialize server status from storage
+  // 从存储初始化服务器状态
   loadServerStatus()
     .then((status) => {
       currentServerStatus = status;
@@ -198,7 +198,7 @@ export const initNativeHostListener = () => {
         nativePort = null;
         sendResponse({ success: true });
       } else {
-        sendResponse({ success: false, error: 'No active connection' });
+        sendResponse({ success: false, error: '没有活动连接' });
       }
       return true;
     }

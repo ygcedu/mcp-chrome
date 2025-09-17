@@ -1,20 +1,20 @@
 /* eslint-disable */
 // click-helper.js
-// This script is injected into the page to handle click operations
+// 此脚本被注入到页面中以处理点击操作
 
 if (window.__CLICK_HELPER_INITIALIZED__) {
-  // Already initialized, skip
+  // 已初始化，跳过
 } else {
   window.__CLICK_HELPER_INITIALIZED__ = true;
   /**
-   * Click on an element matching the selector or at specific coordinates
-   * @param {string} selector - CSS selector for the element to click
-   * @param {boolean} waitForNavigation - Whether to wait for navigation to complete after click
-   * @param {number} timeout - Timeout in milliseconds for waiting for the element or navigation
-   * @param {Object} coordinates - Optional coordinates for clicking at a specific position
-   * @param {number} coordinates.x - X coordinate relative to the viewport
-   * @param {number} coordinates.y - Y coordinate relative to the viewport
-   * @returns {Promise<Object>} - Result of the click operation
+   * 点击匹配选择器的元素或特定坐标
+   * @param {string} selector - 要点击元素的 CSS 选择器
+   * @param {boolean} waitForNavigation - 是否等待点击后导航完成
+   * @param {number} timeout - 等待元素或导航的超时时间（毫秒）
+   * @param {Object} coordinates - 在特定位置点击的可选坐标
+   * @param {number} coordinates.x - 相对于视口的 X 坐标
+   * @param {number} coordinates.y - 相对于视口的 Y 坐标
+   * @returns {Promise<Object>} - 点击操作的结果
    */
   async function clickElement(
     selector,
@@ -60,14 +60,14 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
           elementInfo = {
             clickMethod: 'coordinates',
             clickPosition: { x: clickX, y: clickY },
-            warning: 'No element found at the specified coordinates',
+            warning: '在指定坐标处未找到元素',
           };
         }
       } else {
         element = document.querySelector(selector);
         if (!element) {
           return {
-            error: `Element with selector "${selector}" not found`,
+            error: `未找到选择器为 "${selector}" 的元素`,
           };
         }
 
@@ -93,13 +93,13 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
           clickMethod: 'selector',
         };
 
-        // First sroll so that the element is in view, then check visibility.
+        // 首先滚动使元素可见，然后检查可见性。
         element.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
         await new Promise((resolve) => setTimeout(resolve, 100));
         elementInfo.isVisible = isElementVisible(element);
         if (!elementInfo.isVisible) {
           return {
-            error: `Element with selector "${selector}" is not visible`,
+            error: `选择器为 "${selector}" 的元素不可见`,
             elementInfo,
           };
         }
@@ -131,7 +131,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         simulateClick(clickX, clickY);
       }
 
-      // Wait for navigation if needed
+      // 如果需要，等待导航
       let navigationOccurred = false;
       if (waitForNavigation) {
         navigationOccurred = await navigationPromise;
@@ -139,21 +139,21 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
 
       return {
         success: true,
-        message: 'Element clicked successfully',
+        message: '元素点击成功',
         elementInfo,
         navigationOccurred,
       };
     } catch (error) {
       return {
-        error: `Error clicking element: ${error.message}`,
+        error: `点击元素时出错: ${error.message}`,
       };
     }
   }
 
   /**
-   * Simulate a mouse click at specific coordinates
-   * @param {number} x - X coordinate relative to the viewport
-   * @param {number} y - Y coordinate relative to the viewport
+   * 在特定坐标模拟鼠标点击
+   * @param {number} x - 相对于视口的 X 坐标
+   * @param {number} y - 相对于视口的 Y 坐标
    */
   function simulateClick(x, y) {
     const clickEvent = new MouseEvent('click', {
@@ -174,9 +174,9 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
   }
 
   /**
-   * Check if an element is visible
-   * @param {Element} element - The element to check
-   * @returns {boolean} - Whether the element is visible
+   * 检查元素是否可见
+   * @param {Element} element - 要检查的元素
+   * @returns {boolean} - 元素是否可见
    */
   function isElementVisible(element) {
     if (!element) return false;
@@ -209,7 +209,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
     return element === elementAtPoint || element.contains(elementAtPoint);
   }
 
-  // Listen for messages from the extension
+  // 监听来自扩展的消息
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (request.action === 'clickElement') {
       clickElement(
@@ -221,10 +221,10 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         .then(sendResponse)
         .catch((error) => {
           sendResponse({
-            error: `Unexpected error: ${error.message}`,
+            error: `意外错误: ${error.message}`,
           });
         });
-      return true; // Indicates async response
+      return true; // 表示异步响应
     } else if (request.action === 'chrome_click_element_ping') {
       sendResponse({ status: 'pong' });
       return false;

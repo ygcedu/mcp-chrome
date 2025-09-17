@@ -43,9 +43,9 @@ class WindowTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error in WindowTool.execute:', error);
+      console.error('WindowTool.execute 中出错:', error);
       return createErrorResponse(
-        `Error getting windows and tabs information: ${error instanceof Error ? error.message : String(error)}`,
+        `获取窗口和标签页信息时出错: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

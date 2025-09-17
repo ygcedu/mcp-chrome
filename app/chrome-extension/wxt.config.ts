@@ -8,7 +8,7 @@ config({ path: resolve(process.cwd(), '.env.local') });
 
 const CHROME_EXTENSION_KEY = process.env.CHROME_EXTENSION_KEY;
 
-// See https://wxt.dev/api/config.html
+// 参见 https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   runner: {
@@ -26,7 +26,7 @@ export default defineConfig({
     // ],
   },
   manifest: {
-    // Use environment variable for the key, fallback to undefined if not set
+    // 使用环境变量作为密钥，如果未设置则回退到 undefined
     key: CHROME_EXTENSION_KEY,
     name: 'Chrome MCP Server',
     description: 'Chrome MCP Server - 为AI提供浏览器控制能力',

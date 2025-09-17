@@ -6,7 +6,7 @@ import { defineConfig } from 'eslint/config';
 import prettierConfig from 'eslint-config-prettier';
 
 export default defineConfig([
-  // Global ignores - these apply to all configurations
+  // 全局忽略规则 - 这些规则适用于所有配置
   {
     ignores: [
       'dist/**',
@@ -45,6 +45,6 @@ export default defineConfig([
   },
   pluginVue.configs['flat/essential'],
   { files: ['**/*.vue'], languageOptions: { parserOptions: { parser: tseslint.parser } } },
-  // Prettier configuration - must be placed last to override previous rules
+  // Prettier 配置 - 必须放在最后以覆盖之前的规则
   prettierConfig,
 ]);

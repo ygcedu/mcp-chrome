@@ -3,8 +3,8 @@ import serverInstance from './server';
 import nativeMessagingHostInstance from './native-messaging-host';
 
 try {
-  serverInstance.setNativeHost(nativeMessagingHostInstance); // Server needs setNativeHost method
-  nativeMessagingHostInstance.setServer(serverInstance); // NativeHost needs setServer method
+  serverInstance.setNativeHost(nativeMessagingHostInstance); // 服务器需要 setNativeHost 方法
+  nativeMessagingHostInstance.setServer(serverInstance); // NativeHost 需要 setServer 方法
   nativeMessagingHostInstance.start();
 } catch (error) {
   process.exit(1);
@@ -14,7 +14,7 @@ process.on('error', (error) => {
   process.exit(1);
 });
 
-// Handle process signals and uncaught exceptions
+// 处理进程信号和未捕获的异常
 process.on('SIGINT', () => {
   process.exit(0);
 });
@@ -23,13 +23,12 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-process.on('exit', (code) => {
-});
+process.on('exit', (code) => {});
 
 process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
-  // Don't exit immediately, let the program continue running
+  // 不要立即退出，让程序继续运行
 });

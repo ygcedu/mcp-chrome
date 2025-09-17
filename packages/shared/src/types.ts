@@ -10,7 +10,7 @@ export enum NativeMessageType {
   PROCESS_DATA_RESPONSE = 'process_data_response',
   CALL_TOOL = 'call_tool',
   CALL_TOOL_RESPONSE = 'call_tool_response',
-  // Additional message types used in Chrome extension
+  // Chrome 扩展中使用的额外消息类型
   SERVER_STARTED = 'server_started',
   SERVER_STOPPED = 'server_stopped',
   ERROR_FROM_NATIVE_HOST = 'error_from_native_host',

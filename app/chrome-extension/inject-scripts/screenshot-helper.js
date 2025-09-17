@@ -1,21 +1,21 @@
 /* eslint-disable */
 /**
- * Screenshot helper content script
- * Handles page preparation, scrolling, element positioning, etc.
+ * 截图助手内容脚本
+ * 处理页面准备、滚动、元素定位等。
  */
 
 if (window.__SCREENSHOT_HELPER_INITIALIZED__) {
-  // Already initialized, skip
+  // 已初始化，跳过
 } else {
   window.__SCREENSHOT_HELPER_INITIALIZED__ = true;
 
-  // Save original styles
+  // 保存原始样式
   let originalOverflowStyle = '';
   let hiddenFixedElements = [];
 
   /**
-   * Get fixed/sticky positioned elements
-   * @returns Array of fixed/sticky elements
+   * 获取固定/粘性定位元素
+   * @returns 固定/粘性元素数组
    */
   function getFixedElements() {
     const fixed = [];
@@ -24,7 +24,7 @@ if (window.__SCREENSHOT_HELPER_INITIALIZED__) {
       const htmlEl = el;
       const style = window.getComputedStyle(htmlEl);
       if (style.position === 'fixed' || style.position === 'sticky') {
-        // Filter out tiny or invisible elements, and elements that are part of the extension UI
+        // 过滤掉微小或不可见的元素，以及属于扩展 UI 的元素
         if (
           htmlEl.offsetWidth > 1 &&
           htmlEl.offsetHeight > 1 &&
@@ -42,7 +42,7 @@ if (window.__SCREENSHOT_HELPER_INITIALIZED__) {
   }
 
   /**
-   * Hide fixed/sticky elements
+   * 隐藏固定/粘性元素
    */
   function hideFixedElements() {
     hiddenFixedElements = getFixedElements();
@@ -52,7 +52,7 @@ if (window.__SCREENSHOT_HELPER_INITIALIZED__) {
   }
 
   /**
-   * Restore fixed/sticky elements
+   * 恢复固定/粘性元素
    */
   function showFixedElements() {
     hiddenFixedElements.forEach((item) => {
@@ -61,30 +61,30 @@ if (window.__SCREENSHOT_HELPER_INITIALIZED__) {
     hiddenFixedElements = [];
   }
 
-  // Listen for messages from the extension
+  // 监听来自扩展的消息
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-    // Respond to ping message
+    // 响应 ping 消息
     if (request.action === 'chrome_screenshot_ping') {
       sendResponse({ status: 'pong' });
-      return false; // Synchronous response
+      return false; // 同步响应
     }
 
-    // Prepare page for capture
+    // 为捕获准备页面
     else if (request.action === 'preparePageForCapture') {
       originalOverflowStyle = document.documentElement.style.overflow;
-      document.documentElement.style.overflow = 'hidden'; // Hide main scrollbar
+      document.documentElement.style.overflow = 'hidden'; // 隐藏主滚动条
       if (request.options?.fullPage) {
-        // Only hide fixed elements for full page to avoid flicker
+        // 仅在整页时隐藏固定元素以避免闪烁
         hideFixedElements();
       }
-      // Give styles a moment to apply
+      // 给样式一些时间来应用
       setTimeout(() => {
         sendResponse({ success: true });
       }, 50);
-      return true; // Async response
+      return true; // 异步响应
     }
 
-    // Get page details
+    // 获取页面详情
     else if (request.action === 'getPageDetails') {
       const body = document.body;
       const html = document.documentElement;
@@ -111,41 +111,41 @@ if (window.__SCREENSHOT_HELPER_INITIALIZED__) {
       });
     }
 
-    // Get element details
+    // 获取元素详情
     else if (request.action === 'getElementDetails') {
       const element = document.querySelector(request.selector);
       if (element) {
         element.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'nearest' });
         setTimeout(() => {
-          // Wait for scroll
+          // 等待滚动
           const rect = element.getBoundingClientRect();
           sendResponse({
             rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
             devicePixelRatio: window.devicePixelRatio || 1,
           });
-        }, 200); // Increased delay for scrollIntoView
-        return true; // Async response
+        }, 200); // 为 scrollIntoView 增加延迟
+        return true; // 异步响应
       } else {
-        sendResponse({ error: `Element with selector "${request.selector}" not found.` });
+        sendResponse({ error: `未找到选择器为 "${request.selector}" 的元素。` });
       }
-      return true; // Async response
+      return true; // 异步响应
     }
 
-    // Scroll page
+    // 滚动页面
     else if (request.action === 'scrollPage') {
       window.scrollTo({ left: request.x, top: request.y, behavior: 'instant' });
-      // Wait for scroll and potential reflows/lazy-loading
+      // 等待滚动和潜在的重排/懒加载
       setTimeout(() => {
         sendResponse({
           success: true,
           newScrollX: window.scrollX,
           newScrollY: window.scrollY,
         });
-      }, request.scrollDelay || 300); // Configurable delay
-      return true; // Async response
+      }, request.scrollDelay || 300); // 可配置延迟
+      return true; // 异步响应
     }
 
-    // Reset page
+    // 重置页面
     else if (request.action === 'resetPageAfterCapture') {
       document.documentElement.style.overflow = originalOverflowStyle;
       showFixedElements();
@@ -155,6 +155,6 @@ if (window.__SCREENSHOT_HELPER_INITIALIZED__) {
       sendResponse({ success: true });
     }
 
-    return false; // Synchronous response
+    return false; // 同步响应
   });
 }

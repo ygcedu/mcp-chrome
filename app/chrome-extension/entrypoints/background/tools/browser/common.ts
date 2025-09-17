@@ -2,7 +2,7 @@ import { createErrorResponse, ToolResult } from '@/common/tool-handler';
 import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from 'chrome-mcp-shared';
 
-// Default window dimensions
+// 默认窗口尺寸
 const DEFAULT_WINDOW_WIDTH = 1280;
 const DEFAULT_WINDOW_HEIGHT = 720;
 
@@ -15,7 +15,7 @@ interface NavigateToolParams {
 }
 
 /**
- * Tool for navigating to URLs in browser tabs or windows
+ * 用于在浏览器标签页或窗口中导航到 URL 的工具
  */
 class NavigateTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.NAVIGATE;
@@ -23,29 +23,26 @@ class NavigateTool extends BaseBrowserToolExecutor {
   async execute(args: NavigateToolParams): Promise<ToolResult> {
     const { newWindow = false, width, height, url, refresh = false } = args;
 
-    console.log(
-      `Attempting to ${refresh ? 'refresh current tab' : `open URL: ${url}`} with options:`,
-      args,
-    );
+    console.log(`尝试 ${refresh ? '刷新当前标签页' : `打开 URL: ${url}`}，选项:`, args);
 
     try {
-      // Handle refresh option first
+      // 首先处理刷新选项
       if (refresh) {
-        console.log('Refreshing current active tab');
+        console.log('刷新当前活动标签页');
 
-        // Get current active tab
+        // 获取当前活动标签页
         const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
         if (!activeTab || !activeTab.id) {
-          return createErrorResponse('No active tab found to refresh');
+          return createErrorResponse('未找到要刷新的活动标签页');
         }
 
-        // Reload the tab
+        // 重新加载标签页
         await chrome.tabs.reload(activeTab.id);
 
-        console.log(`Refreshed tab ID: ${activeTab.id}`);
+        console.log(`已刷新标签页 ID: ${activeTab.id}`);
 
-        // Get updated tab information
+        // 获取更新的标签页信息
         const updatedTab = await chrome.tabs.get(activeTab.id);
 
         return {
@@ -54,7 +51,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
               type: 'text',
               text: JSON.stringify({
                 success: true,
-                message: 'Successfully refreshed current tab',
+                message: '成功刷新当前标签页',
                 tabId: updatedTab.id,
                 windowId: updatedTab.windowId,
                 url: updatedTab.url,
@@ -65,42 +62,40 @@ class NavigateTool extends BaseBrowserToolExecutor {
         };
       }
 
-      // Validate that url is provided when not refreshing
+      // 在不刷新时验证是否提供了 url
       if (!url) {
-        return createErrorResponse('URL parameter is required when refresh is not true');
+        return createErrorResponse('当 refresh 不为 true 时，URL 参数是必需的');
       }
 
-      // 1. Check if URL is already open
-      // Get all tabs and manually compare URLs
-      console.log(`Checking if URL is already open: ${url}`);
-      // Get all tabs
+      // 1. 检查 URL 是否已经打开
+      // 获取所有标签页并手动比较 URL
+      console.log(`检查 URL 是否已经打开: ${url}`);
+      // 获取所有标签页
       const allTabs = await chrome.tabs.query({});
-      // Manually filter matching tabs
+      // 手动过滤匹配的标签页
       const tabs = allTabs.filter((tab) => {
-        // Normalize URLs for comparison (remove trailing slashes)
+        // 规范化 URL 以进行比较（移除末尾斜杠）
         const tabUrl = tab.url?.endsWith('/') ? tab.url.slice(0, -1) : tab.url;
         const targetUrl = url.endsWith('/') ? url.slice(0, -1) : url;
         return tabUrl === targetUrl;
       });
-      console.log(`Found ${tabs.length} matching tabs`);
+      console.log(`找到 ${tabs.length} 个匹配的标签页`);
 
       if (tabs && tabs.length > 0) {
         const existingTab = tabs[0];
-        console.log(
-          `URL already open in Tab ID: ${existingTab.id}, Window ID: ${existingTab.windowId}`,
-        );
+        console.log(`URL 已在标签页中打开 ID: ${existingTab.id}, 窗口 ID: ${existingTab.windowId}`);
 
         if (existingTab.id !== undefined) {
-          // Activate the tab
+          // 激活标签页
           await chrome.tabs.update(existingTab.id, { active: true });
 
           if (existingTab.windowId !== undefined) {
-            // Bring the window containing this tab to the foreground and focus it
+            // 将包含此标签页的窗口置于前台并聚焦
             await chrome.windows.update(existingTab.windowId, { focused: true });
           }
 
-          console.log(`Activated existing Tab ID: ${existingTab.id}`);
-          // Get updated tab information and return it
+          console.log(`已激活现有标签页 ID: ${existingTab.id}`);
+          // 获取更新的标签页信息并返回
           const updatedTab = await chrome.tabs.get(existingTab.id);
 
           return {
@@ -109,7 +104,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
                 type: 'text',
                 text: JSON.stringify({
                   success: true,
-                  message: 'Activated existing tab',
+                  message: '已激活现有标签页',
                   tabId: updatedTab.id,
                   windowId: updatedTab.windowId,
                   url: updatedTab.url,
@@ -121,13 +116,13 @@ class NavigateTool extends BaseBrowserToolExecutor {
         }
       }
 
-      // 2. If URL is not already open, decide how to open it based on options
+      // 2. 如果 URL 尚未打开，根据选项决定如何打开
       const openInNewWindow = newWindow || typeof width === 'number' || typeof height === 'number';
 
       if (openInNewWindow) {
-        console.log('Opening URL in a new window.');
+        console.log('在新窗口中打开 URL。');
 
-        // Create new window
+        // 创建新窗口
         const newWindow = await chrome.windows.create({
           url: url,
           width: typeof width === 'number' ? width : DEFAULT_WINDOW_WIDTH,
@@ -136,7 +131,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
         });
 
         if (newWindow && newWindow.id !== undefined) {
-          console.log(`URL opened in new Window ID: ${newWindow.id}`);
+          console.log(`URL 已在新窗口中打开 ID: ${newWindow.id}`);
 
           return {
             content: [
@@ -144,7 +139,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
                 type: 'text',
                 text: JSON.stringify({
                   success: true,
-                  message: 'Opened URL in new window',
+                  message: '已在新窗口中打开 URL',
                   windowId: newWindow.id,
                   tabs: newWindow.tabs
                     ? newWindow.tabs.map((tab) => ({
@@ -159,12 +154,12 @@ class NavigateTool extends BaseBrowserToolExecutor {
           };
         }
       } else {
-        console.log('Opening URL in the last active window.');
-        // Try to open a new tab in the most recently active window
+        console.log('在最后活动的窗口中打开 URL。');
+        // 尝试在最近活动的窗口中打开新标签页
         const lastFocusedWindow = await chrome.windows.getLastFocused({ populate: false });
 
         if (lastFocusedWindow && lastFocusedWindow.id !== undefined) {
-          console.log(`Found last focused Window ID: ${lastFocusedWindow.id}`);
+          console.log(`找到最后聚焦的窗口 ID: ${lastFocusedWindow.id}`);
 
           const newTab = await chrome.tabs.create({
             url: url,
@@ -172,11 +167,11 @@ class NavigateTool extends BaseBrowserToolExecutor {
             active: true,
           });
 
-          // Ensure the window also gets focus
+          // 确保窗口也获得焦点
           await chrome.windows.update(lastFocusedWindow.id, { focused: true });
 
           console.log(
-            `URL opened in new Tab ID: ${newTab.id} in existing Window ID: ${lastFocusedWindow.id}`,
+            `URL 已在现有窗口 ID: ${lastFocusedWindow.id} 的新标签页 ID: ${newTab.id} 中打开`,
           );
 
           return {
@@ -185,7 +180,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
                 type: 'text',
                 text: JSON.stringify({
                   success: true,
-                  message: 'Opened URL in new tab in existing window',
+                  message: '已在现有窗口的新标签页中打开 URL',
                   tabId: newTab.id,
                   windowId: lastFocusedWindow.id,
                   url: newTab.url,
@@ -195,9 +190,9 @@ class NavigateTool extends BaseBrowserToolExecutor {
             isError: false,
           };
         } else {
-          // In rare cases, if there's no recently active window (e.g., browser just started with no windows)
-          // Fall back to opening in a new window
-          console.warn('No last focused window found, falling back to creating a new window.');
+          // 在罕见情况下，如果没有最近活动的窗口（例如，浏览器刚启动且没有窗口）
+          // 回退到在新窗口中打开
+          console.warn('未找到最后聚焦的窗口，回退到创建新窗口。');
 
           const fallbackWindow = await chrome.windows.create({
             url: url,
@@ -207,7 +202,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
           });
 
           if (fallbackWindow && fallbackWindow.id !== undefined) {
-            console.log(`URL opened in fallback new Window ID: ${fallbackWindow.id}`);
+            console.log(`URL 已在回退新窗口 ID: ${fallbackWindow.id} 中打开`);
 
             return {
               content: [
@@ -215,7 +210,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
                   type: 'text',
                   text: JSON.stringify({
                     success: true,
-                    message: 'Opened URL in new window',
+                    message: '已在新窗口中打开 URL',
                     windowId: fallbackWindow.id,
                     tabs: fallbackWindow.tabs
                       ? fallbackWindow.tabs.map((tab) => ({
@@ -232,16 +227,16 @@ class NavigateTool extends BaseBrowserToolExecutor {
         }
       }
 
-      // If all attempts fail, return a generic error
-      return createErrorResponse('Failed to open URL: Unknown error occurred');
+      // 如果所有尝试都失败，返回通用错误
+      return createErrorResponse('打开 URL 失败：发生未知错误');
     } catch (error) {
       if (chrome.runtime.lastError) {
-        console.error(`Chrome API Error: ${chrome.runtime.lastError.message}`, error);
-        return createErrorResponse(`Chrome API Error: ${chrome.runtime.lastError.message}`);
+        console.error(`Chrome API 错误: ${chrome.runtime.lastError.message}`, error);
+        return createErrorResponse(`Chrome API 错误: ${chrome.runtime.lastError.message}`);
       } else {
-        console.error('Error in navigate:', error);
+        console.error('导航错误:', error);
         return createErrorResponse(
-          `Error navigating to URL: ${error instanceof Error ? error.message : String(error)}`,
+          `导航到 URL 时出错: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     }
@@ -255,7 +250,7 @@ interface CloseTabsToolParams {
 }
 
 /**
- * Tool for closing browser tabs
+ * 用于关闭浏览器标签页的工具
  */
 class CloseTabsTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.CLOSE_TABS;
@@ -263,26 +258,26 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
   async execute(args: CloseTabsToolParams): Promise<ToolResult> {
     const { tabIds, url } = args;
     let urlPattern = url;
-    console.log(`Attempting to close tabs with options:`, args);
+    console.log(`尝试关闭标签页，选项:`, args);
 
     try {
-      // If URL is provided, close all tabs matching that URL
+      // 如果提供了 URL，关闭所有匹配该 URL 的标签页
       if (urlPattern) {
-        console.log(`Searching for tabs with URL: ${url}`);
+        console.log(`搜索 URL 为 ${url} 的标签页`);
         if (!urlPattern.endsWith('/')) {
           urlPattern += '/*';
         }
         const tabs = await chrome.tabs.query({ url });
 
         if (!tabs || tabs.length === 0) {
-          console.log(`No tabs found with URL: ${url}`);
+          console.log(`未找到 URL 为 ${url} 的标签页`);
           return {
             content: [
               {
                 type: 'text',
                 text: JSON.stringify({
                   success: false,
-                  message: `No tabs found with URL: ${url}`,
+                  message: `未找到 URL 为 ${url} 的标签页`,
                   closedCount: 0,
                 }),
               },
@@ -291,13 +286,13 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
           };
         }
 
-        console.log(`Found ${tabs.length} tabs with URL: ${url}`);
+        console.log(`找到 ${tabs.length} 个 URL 为 ${url} 的标签页`);
         const tabIdsToClose = tabs
           .map((tab) => tab.id)
           .filter((id): id is number => id !== undefined);
 
         if (tabIdsToClose.length === 0) {
-          return createErrorResponse('Found tabs but could not get their IDs');
+          return createErrorResponse('找到标签页但无法获取其 ID');
         }
 
         await chrome.tabs.remove(tabIdsToClose);
@@ -308,7 +303,7 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
               type: 'text',
               text: JSON.stringify({
                 success: true,
-                message: `Closed ${tabIdsToClose.length} tabs with URL: ${url}`,
+                message: `已关闭 ${tabIdsToClose.length} 个 URL 为 ${url} 的标签页`,
                 closedCount: tabIdsToClose.length,
                 closedTabIds: tabIdsToClose,
               }),
@@ -318,17 +313,17 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
         };
       }
 
-      // If tabIds are provided, close those tabs
+      // 如果提供了 tabIds，关闭这些标签页
       if (tabIds && tabIds.length > 0) {
-        console.log(`Closing tabs with IDs: ${tabIds.join(', ')}`);
+        console.log(`关闭 ID 为 ${tabIds.join(', ')} 的标签页`);
 
-        // Verify that all tabIds exist
+        // 验证所有 tabIds 是否存在
         const existingTabs = await Promise.all(
           tabIds.map(async (tabId) => {
             try {
               return await chrome.tabs.get(tabId);
             } catch (error) {
-              console.warn(`Tab with ID ${tabId} not found`);
+              console.warn(`未找到 ID 为 ${tabId} 的标签页`);
               return null;
             }
           }),
@@ -346,7 +341,7 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
                 type: 'text',
                 text: JSON.stringify({
                   success: false,
-                  message: 'None of the provided tab IDs exist',
+                  message: '提供的标签页 ID 都不存在',
                   closedCount: 0,
                 }),
               },
@@ -363,7 +358,7 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
               type: 'text',
               text: JSON.stringify({
                 success: true,
-                message: `Closed ${validTabIds.length} tabs`,
+                message: `已关闭 ${validTabIds.length} 个标签页`,
                 closedCount: validTabIds.length,
                 closedTabIds: validTabIds,
                 invalidTabIds: tabIds.filter((id) => !validTabIds.includes(id)),
@@ -374,12 +369,12 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
         };
       }
 
-      // If no tabIds or URL provided, close the current active tab
-      console.log('No tabIds or URL provided, closing active tab');
+      // 如果没有提供 tabIds 或 URL，关闭当前活动标签页
+      console.log('未提供 tabIds 或 URL，关闭活动标签页');
       const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
       if (!activeTab || !activeTab.id) {
-        return createErrorResponse('No active tab found');
+        return createErrorResponse('未找到活动标签页');
       }
 
       await chrome.tabs.remove(activeTab.id);
@@ -390,7 +385,7 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: 'Closed active tab',
+              message: '已关闭活动标签页',
               closedCount: 1,
               closedTabIds: [activeTab.id],
             }),
@@ -399,9 +394,9 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error in CloseTabsTool.execute:', error);
+      console.error('CloseTabsTool.execute 错误:', error);
       return createErrorResponse(
-        `Error closing tabs: ${error instanceof Error ? error.message : String(error)}`,
+        `关闭标签页时出错: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -414,7 +409,7 @@ interface GoBackOrForwardToolParams {
 }
 
 /**
- * Tool for navigating back or forward in browser history
+ * 用于在浏览器历史中向后或向前导航的工具
  */
 class GoBackOrForwardTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.GO_BACK_OR_FORWARD;
@@ -422,26 +417,26 @@ class GoBackOrForwardTool extends BaseBrowserToolExecutor {
   async execute(args: GoBackOrForwardToolParams): Promise<ToolResult> {
     const { isForward = false } = args;
 
-    console.log(`Attempting to navigate ${isForward ? 'forward' : 'back'} in browser history`);
+    console.log(`尝试在浏览器历史中${isForward ? '前进' : '后退'}`);
 
     try {
-      // Get current active tab
+      // 获取当前活动标签页
       const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
       if (!activeTab || !activeTab.id) {
-        return createErrorResponse('No active tab found');
+        return createErrorResponse('未找到活动标签页');
       }
 
-      // Navigate back or forward based on the isForward parameter
+      // 根据 isForward 参数向后或向前导航
       if (isForward) {
         await chrome.tabs.goForward(activeTab.id);
-        console.log(`Navigated forward in tab ID: ${activeTab.id}`);
+        console.log(`在标签页 ID: ${activeTab.id} 中前进`);
       } else {
         await chrome.tabs.goBack(activeTab.id);
-        console.log(`Navigated back in tab ID: ${activeTab.id}`);
+        console.log(`在标签页 ID: ${activeTab.id} 中后退`);
       }
 
-      // Get updated tab information
+      // 获取更新的标签页信息
       const updatedTab = await chrome.tabs.get(activeTab.id);
 
       return {
@@ -450,7 +445,7 @@ class GoBackOrForwardTool extends BaseBrowserToolExecutor {
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: `Successfully navigated ${isForward ? 'forward' : 'back'} in browser history`,
+              message: `成功在浏览器历史中${isForward ? '前进' : '后退'}`,
               tabId: updatedTab.id,
               windowId: updatedTab.windowId,
               url: updatedTab.url,
@@ -461,12 +456,12 @@ class GoBackOrForwardTool extends BaseBrowserToolExecutor {
       };
     } catch (error) {
       if (chrome.runtime.lastError) {
-        console.error(`Chrome API Error: ${chrome.runtime.lastError.message}`, error);
-        return createErrorResponse(`Chrome API Error: ${chrome.runtime.lastError.message}`);
+        console.error(`Chrome API 错误: ${chrome.runtime.lastError.message}`, error);
+        return createErrorResponse(`Chrome API 错误: ${chrome.runtime.lastError.message}`);
       } else {
-        console.error('Error in GoBackOrForwardTool.execute:', error);
+        console.error('GoBackOrForwardTool.execute 错误:', error);
         return createErrorResponse(
-          `Error navigating ${isForward ? 'forward' : 'back'}: ${
+          `${isForward ? '前进' : '后退'}导航时出错: ${
             error instanceof Error ? error.message : String(error)
           }`,
         );

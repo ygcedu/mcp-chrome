@@ -9,9 +9,9 @@ import { OFFSCREEN_MESSAGE_TYPES } from '@/common/message-types';
 import { ModelCacheManager } from './model-cache-manager';
 
 /**
- * Get cached model data, prioritizing cache reads and handling redirected URLs.
- * @param {string} modelUrl Stable, permanent URL of the model
- * @returns {Promise<ArrayBuffer>} Model data as ArrayBuffer
+ * 获取缓存的模型数据，优先读取缓存并处理重定向 URL。
+ * @param {string} modelUrl 模型的稳定、永久 URL
+ * @returns {Promise<ArrayBuffer>} 作为 ArrayBuffer 的模型数据
  */
 async function getCachedModelData(modelUrl: string): Promise<ArrayBuffer> {
   const cacheManager = ModelCacheManager.getInstance();
@@ -22,14 +22,14 @@ async function getCachedModelData(modelUrl: string): Promise<ArrayBuffer> {
     return cachedData;
   }
 
-  console.log('Model not found in cache or expired. Fetching from network...');
+  console.log('模型在缓存中未找到或已过期。从网络获取...');
 
   try {
     // 2. 从网络获取数据
     const response = await fetch(modelUrl);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch model: ${response.status} ${response.statusText}`);
+      throw new Error(`获取模型失败: ${response.status} ${response.statusText}`);
     }
 
     // 3. 获取数据并存储到缓存
@@ -37,12 +37,12 @@ async function getCachedModelData(modelUrl: string): Promise<ArrayBuffer> {
     await cacheManager.storeModelData(modelUrl, arrayBuffer);
 
     console.log(
-      `Model fetched from network and successfully cached (${(arrayBuffer.byteLength / 1024 / 1024).toFixed(2)}MB).`,
+      `模型已从网络获取并成功缓存 (${(arrayBuffer.byteLength / 1024 / 1024).toFixed(2)}MB)。`,
     );
 
     return arrayBuffer;
   } catch (error) {
-    console.error(`Error fetching or caching model:`, error);
+    console.error(`获取或缓存模型时出错:`, error);
     // 如果获取失败，清理可能不完整的缓存条目
     await cacheManager.deleteCacheEntry(modelUrl);
     throw error;
@@ -50,20 +50,20 @@ async function getCachedModelData(modelUrl: string): Promise<ArrayBuffer> {
 }
 
 /**
- * Clear all model cache entries
+ * 清除所有模型缓存条目
  */
 export async function clearModelCache(): Promise<void> {
   try {
     const cacheManager = ModelCacheManager.getInstance();
     await cacheManager.clearAllCache();
   } catch (error) {
-    console.error('Failed to clear model cache:', error);
+    console.error('清除模型缓存失败:', error);
     throw error;
   }
 }
 
 /**
- * Get cache statistics
+ * 获取缓存统计信息
  */
 export async function getCacheStats(): Promise<{
   totalSize: number;
@@ -82,70 +82,70 @@ export async function getCacheStats(): Promise<{
     const cacheManager = ModelCacheManager.getInstance();
     return await cacheManager.getCacheStats();
   } catch (error) {
-    console.error('Failed to get cache stats:', error);
+    console.error('获取缓存统计信息失败:', error);
     throw error;
   }
 }
 
 /**
- * Manually trigger cache cleanup
+ * 手动触发缓存清理
  */
 export async function cleanupModelCache(): Promise<void> {
   try {
     const cacheManager = ModelCacheManager.getInstance();
     await cacheManager.manualCleanup();
   } catch (error) {
-    console.error('Failed to cleanup cache:', error);
+    console.error('清理缓存失败:', error);
     throw error;
   }
 }
 
 /**
- * Check if the default model is cached and available
- * @returns Promise<boolean> True if default model is cached and valid
+ * 检查默认模型是否已缓存并可用
+ * @returns Promise<boolean> 如果默认模型已缓存并有效则为 true
  */
 export async function isDefaultModelCached(): Promise<boolean> {
   try {
-    // Get the default model configuration
+    // 获取默认模型配置
     const result = await chrome.storage.local.get([STORAGE_KEYS.SEMANTIC_MODEL]);
     const defaultModel =
       (result[STORAGE_KEYS.SEMANTIC_MODEL] as ModelPreset) || 'multilingual-e5-small';
 
-    // Build the model URL
+    // 构建模型 URL
     const modelInfo = PREDEFINED_MODELS[defaultModel];
     const modelIdentifier = modelInfo.modelIdentifier;
-    const onnxModelFile = 'model.onnx'; // Default ONNX file name
+    const onnxModelFile = 'model.onnx'; // 默认 ONNX 文件名
 
     const modelIdParts = modelIdentifier.split('/');
     const modelNameForUrl = modelIdParts.length > 1 ? modelIdentifier : `Xenova/${modelIdentifier}`;
     const onnxModelUrl = `https://huggingface.co/${modelNameForUrl}/resolve/main/onnx/${onnxModelFile}`;
 
-    // Check if this model is cached
+    // 检查此模型是否已缓存
     const cacheManager = ModelCacheManager.getInstance();
     return await cacheManager.isModelCached(onnxModelUrl);
   } catch (error) {
-    console.error('Error checking if default model is cached:', error);
+    console.error('检查默认模型是否已缓存时出错:', error);
     return false;
   }
 }
 
 /**
- * Check if any model cache exists (for conditional initialization)
- * @returns Promise<boolean> True if any valid model cache exists
+ * 检查是否存在任何模型缓存（用于条件初始化）
+ * @returns Promise<boolean> 如果存在任何有效的模型缓存则为 true
  */
 export async function hasAnyModelCache(): Promise<boolean> {
   try {
     const cacheManager = ModelCacheManager.getInstance();
     return await cacheManager.hasAnyValidCache();
   } catch (error) {
-    console.error('Error checking for any model cache:', error);
+    console.error('检查任何模型缓存时出错:', error);
     return false;
   }
 }
 
-// Predefined model configurations - 2025 curated recommended models, using quantized versions to reduce file size
+// 预定义模型配置 - 2025 年精选推荐模型，使用量化版本以减小文件大小
 export const PREDEFINED_MODELS = {
-  // Multilingual model - default recommendation
+  // 多语言模型 - 默认推荐
   'multilingual-e5-small': {
     modelIdentifier: 'Xenova/multilingual-e5-small',
     dimension: 384,
@@ -465,7 +465,7 @@ export class SemanticSimilarityEngineProxy {
   constructor(config: Partial<ModelConfig> = {}) {
     this.config = config;
     this.offscreenManager = OffscreenManager.getInstance();
-    console.log('SemanticSimilarityEngineProxy: Proxy created with config:', {
+    console.log('语义相似度引擎代理: 代理已创建，配置:', {
       modelPreset: config.modelPreset,
       modelVersion: config.modelVersion,
       dimension: config.dimension,
@@ -474,26 +474,22 @@ export class SemanticSimilarityEngineProxy {
 
   async initialize(): Promise<void> {
     try {
-      console.log('SemanticSimilarityEngineProxy: Starting proxy initialization...');
+      console.log('语义相似度引擎代理: 开始代理初始化...');
 
       // Ensure offscreen document exists
-      console.log('SemanticSimilarityEngineProxy: Ensuring offscreen document exists...');
+      console.log('语义相似度引擎代理: 确保离屏文档存在...');
       await this.offscreenManager.ensureOffscreenDocument();
-      console.log('SemanticSimilarityEngineProxy: Offscreen document ready');
+      console.log('语义相似度引擎代理: 离屏文档就绪');
 
       // Ensure engine in offscreen is initialized
-      console.log('SemanticSimilarityEngineProxy: Ensuring offscreen engine is initialized...');
+      console.log('语义相似度引擎代理: 确保离屏引擎已初始化...');
       await this.ensureOffscreenEngineInitialized();
 
       this._isInitialized = true;
-      console.log(
-        'SemanticSimilarityEngineProxy: Proxy initialized, delegating to offscreen engine',
-      );
+      console.log('语义相似度引擎代理: 代理已初始化，委托给离屏引擎');
     } catch (error) {
-      console.error('SemanticSimilarityEngineProxy: Initialization failed:', error);
-      throw new Error(
-        `Failed to initialize proxy: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      console.error('语义相似度引擎代理: 初始化失败:', error);
+      throw new Error(`初始化代理失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   }
 
@@ -517,7 +513,7 @@ export class SemanticSimilarityEngineProxy {
         };
       }
     } catch (error) {
-      console.warn('SemanticSimilarityEngineProxy: Failed to check engine status:', error);
+      console.warn('语义相似度引擎代理: 检查引擎状态失败:', error);
     }
 
     return { isInitialized: false, currentConfig: null };
@@ -529,7 +525,7 @@ export class SemanticSimilarityEngineProxy {
   private async ensureOffscreenEngineInitialized(): Promise<void> {
     // Prevent concurrent initialization attempts
     if (this._isEnsuring) {
-      console.log('SemanticSimilarityEngineProxy: Already ensuring initialization, waiting...');
+      console.log('语义相似度引擎代理: 已在确保初始化，等待中...');
       // Wait a bit and check again
       await new Promise((resolve) => setTimeout(resolve, 100));
       return;
@@ -540,9 +536,7 @@ export class SemanticSimilarityEngineProxy {
       const status = await this.checkOffscreenEngineStatus();
 
       if (!status.isInitialized) {
-        console.log(
-          'SemanticSimilarityEngineProxy: Engine not initialized in offscreen, initializing...',
-        );
+        console.log('语义相似度引擎代理: 离屏中的引擎未初始化，正在初始化...');
 
         // Reinitialize engine
         const response = await chrome.runtime.sendMessage({
@@ -552,10 +546,10 @@ export class SemanticSimilarityEngineProxy {
         });
 
         if (!response || !response.success) {
-          throw new Error(response?.error || 'Failed to initialize engine in offscreen document');
+          throw new Error(response?.error || '在离屏文档中初始化引擎失败');
         }
 
-        console.log('SemanticSimilarityEngineProxy: Engine reinitialized successfully');
+        console.log('语义相似度引擎代理: 引擎重新初始化成功');
       }
     } finally {
       this._isEnsuring = false;
@@ -573,10 +567,7 @@ export class SemanticSimilarityEngineProxy {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(
-          `SemanticSimilarityEngineProxy: Sending message (attempt ${attempt}/${maxRetries}):`,
-          message.type,
-        );
+        console.log(`语义相似度引擎代理: 发送消息 (尝试 ${attempt}/${maxRetries}):`, message.type);
 
         const response = await chrome.runtime.sendMessage(message);
 
@@ -584,11 +575,9 @@ export class SemanticSimilarityEngineProxy {
           throw new Error('No response received from offscreen document');
         }
 
-        // If engine not initialized error received, try to reinitialize
-        if (!response.success && response.error && response.error.includes('not initialized')) {
-          console.log(
-            'SemanticSimilarityEngineProxy: Engine not initialized, attempting to reinitialize...',
-          );
+        // If engine 未初始化 error received, try to reinitialize
+        if (!response.success && response.error && response.error.includes('未初始化')) {
+          console.log('语义相似度引擎代理: 引擎未初始化，尝试重新初始化...');
           await this.ensureOffscreenEngineInitialized();
 
           // Resend original message
@@ -601,17 +590,12 @@ export class SemanticSimilarityEngineProxy {
         return response;
       } catch (error) {
         lastError = error as Error;
-        console.warn(
-          `SemanticSimilarityEngineProxy: Message failed (attempt ${attempt}/${maxRetries}):`,
-          error,
-        );
+        console.warn(`语义相似度引擎代理: 消息失败 (尝试 ${attempt}/${maxRetries}):`, error);
 
-        // If engine not initialized error, try to reinitialize
-        if (error instanceof Error && error.message.includes('not initialized')) {
+        // If engine 未初始化 error, try to reinitialize
+        if (error instanceof Error && error.message.includes('未初始化')) {
           try {
-            console.log(
-              'SemanticSimilarityEngineProxy: Attempting to reinitialize engine due to error...',
-            );
+            console.log('语义相似度引擎代理: 由于错误尝试重新初始化引擎...');
             await this.ensureOffscreenEngineInitialized();
 
             // Resend original message
@@ -620,10 +604,7 @@ export class SemanticSimilarityEngineProxy {
               return retryResponse;
             }
           } catch (reinitError) {
-            console.warn(
-              'SemanticSimilarityEngineProxy: Failed to reinitialize engine:',
-              reinitError,
-            );
+            console.warn('语义相似度引擎代理: 重新初始化引擎失败:', reinitError);
           }
         }
 
@@ -635,17 +616,14 @@ export class SemanticSimilarityEngineProxy {
           try {
             await this.offscreenManager.ensureOffscreenDocument();
           } catch (offscreenError) {
-            console.warn(
-              'SemanticSimilarityEngineProxy: Failed to ensure offscreen document:',
-              offscreenError,
-            );
+            console.warn('语义相似度引擎代理: 确保离屏文档失败:', offscreenError);
           }
         }
       }
     }
 
     throw new Error(
-      `Failed to communicate with offscreen document after ${maxRetries} attempts. Last error: ${lastError?.message}`,
+      `在 ${maxRetries} 次尝试后与离屏文档通信失败。最后一个错误: ${lastError?.message}`,
     );
   }
 
@@ -665,7 +643,7 @@ export class SemanticSimilarityEngineProxy {
     });
 
     if (!response || !response.success) {
-      throw new Error(response?.error || 'Failed to get embedding from offscreen document');
+      throw new Error(response?.error || '从离屏文档获取嵌入向量失败');
     }
 
     if (!response.embedding || !Array.isArray(response.embedding)) {
@@ -696,7 +674,7 @@ export class SemanticSimilarityEngineProxy {
     });
 
     if (!response || !response.success) {
-      throw new Error(response?.error || 'Failed to get embeddings batch from offscreen document');
+      throw new Error(response?.error || '从离屏文档获取批量嵌入向量失败');
     }
 
     return response.embeddings.map((emb: number[]) => new Float32Array(emb));
@@ -730,9 +708,7 @@ export class SemanticSimilarityEngineProxy {
     });
 
     if (!response || !response.success) {
-      throw new Error(
-        response?.error || 'Failed to compute similarity batch from offscreen document',
-      );
+      throw new Error(response?.error || '从离屏文档计算批量相似度失败');
     }
 
     return response.similarities;
@@ -764,7 +740,7 @@ export class SemanticSimilarityEngineProxy {
   async dispose(): Promise<void> {
     // Proxy class doesn't need to clean up resources, actual resources are managed by offscreen
     this._isInitialized = false;
-    console.log('SemanticSimilarityEngineProxy: Proxy disposed');
+    console.log('语义相似度引擎代理: 代理已释放');
   }
 }
 
@@ -861,7 +837,7 @@ export class SemanticSimilarityEngine {
   }
 
   constructor(options: Partial<ModelConfig> = {}) {
-    console.log('SemanticSimilarityEngine: Constructor called with options:', {
+    console.log('语义相似度引擎: 构造函数调用，选项:', {
       useLocalFiles: options.useLocalFiles,
       modelIdentifier: options.modelIdentifier,
       forceOffscreen: options.forceOffscreen,
@@ -889,11 +865,11 @@ export class SemanticSimilarityEngine {
         requiresTokenTypeIds: modelSpecificConfig.requiresTokenTypeIds !== false, // Default to true unless explicitly set to false
       };
       console.log(
-        `SemanticSimilarityEngine: Using model preset "${options.modelPreset}" with version "${modelVersion}":`,
+        `语义相似度引擎: 使用模型预设 "${options.modelPreset}" 版本 "${modelVersion}":`,
         preset,
       );
-      console.log(`SemanticSimilarityEngine: Base model identifier: ${baseModelIdentifier}`);
-      console.log(`SemanticSimilarityEngine: ONNX file for version: ${onnxFileName}`);
+      console.log(`语义相似度引擎: 基础模型标识符: ${baseModelIdentifier}`);
+      console.log(`语义相似度引擎: 版本对应的ONNX文件: ${onnxFileName}`);
       console.log(
         `SemanticSimilarityEngine: Requires token_type_ids: ${modelConfig.requiresTokenTypeIds}`,
       );
@@ -928,7 +904,7 @@ export class SemanticSimilarityEngine {
           modelConfig.useLocalFiles !== undefined,
         );
         const result = modelConfig.useLocalFiles !== undefined ? modelConfig.useLocalFiles : true;
-        console.log('SemanticSimilarityEngine: DEBUG - final useLocalFiles value:', result);
+        console.log('语义相似度引擎: 调试 - 最终useLocalFiles值:', result);
         return result;
       })(),
       workerPath: modelConfig.workerPath || 'js/similarity.worker.js', // Will be overridden by WXT's `new URL`
@@ -948,7 +924,7 @@ export class SemanticSimilarityEngine {
       requiresTokenTypeIds: modelConfig.requiresTokenTypeIds !== false, // Default to true
     } as Required<ModelConfig>;
 
-    console.log('SemanticSimilarityEngine: Final config:', {
+    console.log('语义相似度引擎: 最终配置:', {
       useLocalFiles: this.config.useLocalFiles,
       modelIdentifier: this.config.modelIdentifier,
       forceOffscreen: this.config.forceOffscreen,
@@ -969,7 +945,7 @@ export class SemanticSimilarityEngine {
   ): Promise<WorkerResponsePayload> {
     return new Promise((resolve, reject) => {
       if (!this.worker) {
-        reject(new Error('Worker is not initialized.'));
+        reject(new Error('Worker is 未初始化.'));
         return;
       }
       const id = this.nextTokenId++;
@@ -985,20 +961,20 @@ export class SemanticSimilarityEngine {
   }
 
   private _setupWorker(): void {
-    console.log('SemanticSimilarityEngine: Setting up worker...');
+    console.log('语义相似度引擎: 设置工作线程...');
 
     // 方式1: Chrome extension URL (推荐，生产环境最可靠)
     try {
       const workerUrl = chrome.runtime.getURL('workers/similarity.worker.js');
-      console.log(`SemanticSimilarityEngine: Trying chrome.runtime.getURL ${workerUrl}`);
+      console.log(`语义相似度引擎: 尝试chrome.runtime.getURL ${workerUrl}`);
       this.worker = new Worker(workerUrl);
-      console.log(`SemanticSimilarityEngine: Method 1 successful with path`);
+      console.log(`语义相似度引擎: 方法1成功，路径已获取`);
     } catch (error) {
-      console.warn('Method (chrome.runtime.getURL) failed:', error);
+      console.warn('方法 (chrome.runtime.getURL) 失败:', error);
     }
 
     if (!this.worker) {
-      throw new Error('Worker creation failed');
+      throw new Error('工作线程创建失败');
     }
 
     this.worker.onmessage = (
@@ -1102,7 +1078,7 @@ export class SemanticSimilarityEngine {
   private async _doInitializeWithProgress(
     onProgress?: (progress: { status: string; progress: number; message?: string }) => void,
   ): Promise<void> {
-    console.log('SemanticSimilarityEngine: Initializing with progress tracking...');
+    console.log('语义相似度引擎: 带进度跟踪的初始化...');
     const startTime = performance.now();
 
     // 进度报告辅助函数
@@ -1141,7 +1117,7 @@ export class SemanticSimilarityEngine {
         await this.ensureOffscreenDocument();
 
         // 发送初始化消息到offscreen document
-        console.log('SemanticSimilarityEngine: Sending config to offscreen:', {
+        console.log('语义相似度引擎: 发送配置到离屏:', {
           useLocalFiles: this.config.useLocalFiles,
           modelIdentifier: this.config.modelIdentifier,
           localModelPathPrefix: this.config.localModelPathPrefix,
@@ -1177,11 +1153,11 @@ export class SemanticSimilarityEngine {
         });
 
         if (!response || !response.success) {
-          throw new Error(response?.error || 'Failed to initialize engine in offscreen document');
+          throw new Error(response?.error || '在离屏文档中初始化引擎失败');
         }
 
         reportProgress('ready', 100, 'Initialized via offscreen document');
-        console.log('SemanticSimilarityEngine: Initialized via offscreen document');
+        console.log('语义相似度引擎: 通过离屏文档初始化完成');
       } else {
         // 使用直接Worker模式 - 这里我们可以提供真实的进度跟踪
         await this._initializeDirectWorkerWithProgress(reportProgress);
@@ -1192,9 +1168,9 @@ export class SemanticSimilarityEngine {
         `SemanticSimilarityEngine: Initialization complete in ${(performance.now() - startTime).toFixed(2)}ms`,
       );
     } catch (error) {
-      console.error('SemanticSimilarityEngine: Initialization failed.', error);
+      console.error('SemanticSimilarityEngine: 初始化失败.', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      reportProgress('error', 0, `Initialization failed: ${errorMessage}`);
+      reportProgress('error', 0, `初始化失败: ${errorMessage}`);
       if (this.worker) this.worker.terminate();
       this.worker = null;
       this.isInitialized = false;
@@ -1209,7 +1185,7 @@ export class SemanticSimilarityEngine {
   }
 
   private async _doInitialize(): Promise<void> {
-    console.log('SemanticSimilarityEngine: Initializing...');
+    console.log('语义相似度引擎: 正在初始化...');
     const startTime = performance.now();
     try {
       // 检测环境并决定使用哪种模式
@@ -1235,7 +1211,7 @@ export class SemanticSimilarityEngine {
         await this.ensureOffscreenDocument();
 
         // 发送初始化消息到offscreen document
-        console.log('SemanticSimilarityEngine: Sending config to offscreen:', {
+        console.log('语义相似度引擎: 发送配置到离屏:', {
           useLocalFiles: this.config.useLocalFiles,
           modelIdentifier: this.config.modelIdentifier,
           localModelPathPrefix: this.config.localModelPathPrefix,
@@ -1268,7 +1244,7 @@ export class SemanticSimilarityEngine {
           typeof configToSend.useLocalFiles,
         );
 
-        console.log('SemanticSimilarityEngine: Explicit config to send:', configToSend);
+        console.log('语义相似度引擎: 明确发送的配置:', configToSend);
         console.log(
           'SemanticSimilarityEngine: DEBUG - this.config.useLocalFiles value:',
           this.config.useLocalFiles,
@@ -1295,7 +1271,7 @@ export class SemanticSimilarityEngine {
           throw new Error(response?.error || 'Failed to initialize engine in offscreen document');
         }
 
-        console.log('SemanticSimilarityEngine: Initialized via offscreen document');
+        console.log('语义相似度引擎: 通过离屏文档初始化完成');
       } else {
         // 使用直接Worker模式
         this._setupWorker();
@@ -1303,7 +1279,7 @@ export class SemanticSimilarityEngine {
         TransformersEnv.allowRemoteModels = !this.config.useLocalFiles;
         TransformersEnv.allowLocalModels = this.config.useLocalFiles;
 
-        console.log(`SemanticSimilarityEngine: TransformersEnv config:`, {
+        console.log(`语义相似度引擎: TransformersEnv配置:`, {
           allowRemoteModels: TransformersEnv.allowRemoteModels,
           allowLocalModels: TransformersEnv.allowLocalModels,
           useLocalFiles: this.config.useLocalFiles,
@@ -1332,7 +1308,7 @@ export class SemanticSimilarityEngine {
           tokenizerConfig.return_token_type_ids = false;
         }
 
-        console.log(`SemanticSimilarityEngine: Full tokenizer config:`, {
+        console.log(`语义相似度引擎: 完整的分词器配置:`, {
           tokenizerIdentifier,
           localModelPathPrefix: this.config.localModelPathPrefix,
           modelIdentifier: this.config.modelIdentifier,
@@ -1342,7 +1318,7 @@ export class SemanticSimilarityEngine {
           tokenizerConfig,
         });
         this.tokenizer = await AutoTokenizer.from_pretrained(tokenizerIdentifier, tokenizerConfig);
-        console.log('SemanticSimilarityEngine: Tokenizer loaded.');
+        console.log('语义相似度引擎: 分词器已加载。');
 
         if (this.config.useLocalFiles) {
           // Local files mode - use URL path as before
@@ -1372,7 +1348,7 @@ export class SemanticSimilarityEngine {
             );
           }
 
-          console.log(`SemanticSimilarityEngine: Getting cached model data from ${onnxModelUrl}`);
+          console.log(`语义相似度引擎: 从缓存获取模型数据 ${onnxModelUrl}`);
 
           // Get model data from cache (may download if not cached)
           const modelData = await getCachedModelData(onnxModelUrl);
@@ -1392,27 +1368,27 @@ export class SemanticSimilarityEngine {
             [modelData],
           );
         }
-        console.log('SemanticSimilarityEngine: Worker reported model initialized.');
+        console.log('语义相似度引擎: 工作线程报告模型已初始化。');
 
         // 尝试初始化 SIMD 加速
         try {
-          console.log('SemanticSimilarityEngine: Checking SIMD support...');
+          console.log('语义相似度引擎: 检查SIMD支持...');
           const simdSupported = await SIMDMathEngine.checkSIMDSupport();
 
           if (simdSupported) {
-            console.log('SemanticSimilarityEngine: SIMD supported, initializing...');
+            console.log('语义相似度引擎: 支持SIMD，正在初始化...');
             await this.simdMath!.initialize();
             this.useSIMD = true;
-            console.log('SemanticSimilarityEngine: ✅ SIMD acceleration enabled');
+            console.log('语义相似度引擎: ✅ SIMD加速已启用');
           } else {
             console.log(
               'SemanticSimilarityEngine: ❌ SIMD not supported, using JavaScript fallback',
             );
-            console.log('SemanticSimilarityEngine: To enable SIMD, please use:');
-            console.log('  - Chrome 91+ (May 2021)');
-            console.log('  - Firefox 89+ (June 2021)');
-            console.log('  - Safari 16.4+ (March 2023)');
-            console.log('  - Edge 91+ (May 2021)');
+            console.log('语义相似度引擎: 要启用SIMD，请使用:');
+            console.log('  - Chrome 91+ (2021年5月)');
+            console.log('  - Firefox 89+ (2021年6月)');
+            console.log('  - Safari 16.4+ (2023年3月)');
+            console.log('  - Edge 91+ (2021年5月)');
             this.useSIMD = false;
           }
         } catch (simdError) {
@@ -1429,7 +1405,7 @@ export class SemanticSimilarityEngine {
         `SemanticSimilarityEngine: Initialization complete in ${(performance.now() - startTime).toFixed(2)}ms`,
       );
     } catch (error) {
-      console.error('SemanticSimilarityEngine: Initialization failed.', error);
+      console.error('SemanticSimilarityEngine: 初始化失败.', error);
       if (this.worker) this.worker.terminate();
       this.worker = null;
       this.isInitialized = false;
@@ -1599,7 +1575,7 @@ export class SemanticSimilarityEngine {
     } else if (this.isInitializing && this.initPromise) {
       await this.initPromise;
     }
-    if (!this.isInitialized) throw new Error('Engine not initialized after warmup attempt.');
+    if (!this.isInitialized) throw new Error('Engine 未初始化 after warmup attempt.');
     console.log('SemanticSimilarityEngine: Warming up model...');
 
     // 更有代表性的预热文本，包含不同长度和语言
@@ -1637,7 +1613,7 @@ export class SemanticSimilarityEngine {
   }
 
   private async _tokenizeText(text: string | string[]): Promise<TokenizedOutput> {
-    if (!this.tokenizer) throw new Error('Tokenizer not initialized.');
+    if (!this.tokenizer) throw new Error('Tokenizer 未初始化.');
 
     // 对于单个文本，尝试使用缓存
     if (typeof text === 'string') {
@@ -2337,7 +2313,7 @@ export class SemanticSimilarityEngine {
       embedding: { hits: 0, misses: 0, size: 0 },
       tokenization: { hits: 0, misses: 0, size: 0 },
     };
-    console.log('SemanticSimilarityEngine: All caches cleared.');
+    console.log('语义相似度引擎: 所有缓存已清除。');
   }
 
   // 新增：获取内存使用情况
@@ -2357,7 +2333,7 @@ export class SemanticSimilarityEngine {
   }
 
   public async dispose(): Promise<void> {
-    console.log('SemanticSimilarityEngine: Disposing...');
+    console.log('语义相似度引擎: 正在释放...');
 
     // 清理 Worker 缓冲区
     await this.clearWorkerBuffers();
@@ -2383,6 +2359,6 @@ export class SemanticSimilarityEngine {
     this.isInitializing = false;
     this.initPromise = null;
     this.useSIMD = false;
-    console.log('SemanticSimilarityEngine: Disposed.');
+    console.log('语义相似度引擎: 已释放。');
   }
 }

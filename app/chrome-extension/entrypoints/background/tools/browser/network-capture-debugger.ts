@@ -142,7 +142,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
 
   private handleTabRemoved(tabId: number) {
     if (this.captureData.has(tabId)) {
-      console.log(`NetworkDebuggerStartTool: Tab ${tabId} was closed, cleaning up resources.`);
+      console.log(`网络调试器启动工具: 标签页 ${tabId} 已关闭，清理资源。`);
       this.cleanupCapture(tabId);
     }
   }
@@ -168,7 +168,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
       if (!newTabId) return;
 
       console.log(
-        `NetworkDebuggerStartTool: New tab ${newTabId} created from capturing tab ${openerTabId}, will extend capture to it.`,
+        `网络调试器启动工具: 从捕获标签页 ${openerTabId} 创建了新标签页 ${newTabId}，将扩展捕获到该标签页。`,
       );
 
       // Get the opener tab's capture settings
@@ -185,9 +185,9 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
         includeStatic: openerCaptureInfo.includeStatic,
       });
 
-      console.log(`NetworkDebuggerStartTool: Successfully extended capture to new tab ${newTabId}`);
+      console.log(`网络调试器启动工具: 成功扩展捕获到新标签页 ${newTabId}`);
     } catch (error) {
-      console.error(`NetworkDebuggerStartTool: Error extending capture to new tab:`, error);
+      console.error(`网络调试器启动工具: 扩展捕获到新标签页时出错:`, error);
     }
   }
 
@@ -208,9 +208,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
 
     // If already capturing, stop first
     if (this.captureData.has(tabId)) {
-      console.log(
-        `NetworkDebuggerStartTool: Already capturing on tab ${tabId}. Stopping previous session.`,
-      );
+      console.log(`网络调试器启动工具: 标签页 ${tabId} 已在捕获中。停止之前的会话。`);
       await this.stopCapture(tabId);
     }
 
@@ -224,9 +222,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
         (t) => t.tabId === tabId && t.attached && t.type === 'page',
       );
       if (existingTarget && !existingTarget.extensionId) {
-        throw new Error(
-          `Debugger is already attached to tab ${tabId} by another tool (e.g., DevTools).`,
-        );
+        throw new Error(`调试器已被其他工具（如开发者工具）附加到标签页 ${tabId}。`);
       }
 
       // Attach debugger
@@ -234,9 +230,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
         await chrome.debugger.attach({ tabId }, DEBUGGER_PROTOCOL_VERSION);
       } catch (error: any) {
         if (error.message?.includes('Cannot attach to the target with an attached client')) {
-          throw new Error(
-            `Debugger is already attached to tab ${tabId}. This might be DevTools or another extension.`,
-          );
+          throw new Error(`调试器已附加到标签页 ${tabId}。这可能是开发者工具或其他扩展。`);
         }
         throw error;
       }
@@ -270,7 +264,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
       this.updateLastActivityTime(tabId);
 
       console.log(
-        `NetworkDebuggerStartTool: Started capture for tab ${tabId} (${tab.url}). Max requests: ${NetworkDebuggerStartTool.MAX_REQUESTS_PER_CAPTURE}, Max time: ${maxCaptureTime}ms, Inactivity: ${inactivityTimeout}ms.`,
+        `网络调试器启动工具: 开始捕获标签页 ${tabId} (${tab.url})。最大请求数: ${NetworkDebuggerStartTool.MAX_REQUESTS_PER_CAPTURE}，最大时间: ${maxCaptureTime}ms，非活动超时: ${inactivityTimeout}ms。`,
       );
 
       // Set maximum capture time
@@ -279,14 +273,14 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
           tabId,
           setTimeout(async () => {
             console.log(
-              `NetworkDebuggerStartTool: Max capture time (${maxCaptureTime}ms) reached for tab ${tabId}.`,
+              `网络调试器启动工具: 标签页 ${tabId} 达到最大捕获时间 (${maxCaptureTime}ms)。`,
             );
             await this.stopCapture(tabId, true); // Auto-stop due to max time
           }, maxCaptureTime),
         );
       }
     } catch (error: any) {
-      console.error(`NetworkDebuggerStartTool: Error starting capture for tab ${tabId}:`, error);
+      console.error(`网络调试器启动工具: 启动标签页 ${tabId} 捕获时出错:`, error);
 
       // Clean up resources
       if (this.captureData.has(tabId)) {
@@ -330,7 +324,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
   private handleDebuggerDetach(source: chrome.debugger.Debuggee, reason: string) {
     if (source.tabId && this.captureData.has(source.tabId)) {
       console.log(
-        `NetworkDebuggerStartTool: Debugger detached from tab ${source.tabId}, reason: ${reason}. Cleaning up.`,
+        `网络调试器启动工具: 调试器从标签页 ${source.tabId} 分离，原因: ${reason}。正在清理。`,
       );
       // Potentially inform the user or log the result if the detachment was unexpected
       this.cleanupCapture(source.tabId); // Ensure cleanup happens
@@ -362,7 +356,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
 
     if (inactiveTime >= captureInfo.inactivityTimeout) {
       console.log(
-        `NetworkDebuggerStartTool: No activity for ${inactiveTime}ms (threshold: ${captureInfo.inactivityTimeout}ms), stopping capture for tab ${tabId}`,
+        `网络调试器启动工具: 无活动 ${inactiveTime}ms（阈值: ${captureInfo.inactivityTimeout}ms），停止标签页 ${tabId} 的捕获`,
       );
       this.stopCaptureByInactivity(tabId);
     } else {
@@ -379,7 +373,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
     const captureInfo = this.captureData.get(tabId);
     if (!captureInfo) return;
 
-    console.log(`NetworkDebuggerStartTool: Stopping capture due to inactivity for tab ${tabId}.`);
+    console.log(`网络调试器启动工具: 由于非活动停止标签页 ${tabId} 的捕获。`);
     // Potentially, we might want to notify the client/user that this happened.
     // For now, just stop and make the results available if StopTool is called.
     await this.stopCapture(tabId, true); // Pass a flag indicating it's an auto-stop
@@ -418,13 +412,13 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
       const urlObj = new URL(url);
       // Filter ad/analytics domains
       if (AD_ANALYTICS_DOMAINS.some((domain) => urlObj.hostname.includes(domain))) {
-        // console.log(`NetworkDebuggerStartTool: Filtering ad/analytics domain: ${urlObj.hostname}`);
+        // console.log(`网络调试器启动工具: 过滤广告/分析域名: ${urlObj.hostname}`);
         return true;
       }
       return false;
     } catch (e) {
       // Invalid URL? Log and don't filter.
-      console.error(`NetworkDebuggerStartTool: Error parsing URL for filtering: ${url}`, e);
+      console.error(`网络调试器启动工具: 解析URL进行过滤时出错: ${url}`, e);
       return false;
     }
   }
@@ -436,15 +430,12 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
       const urlObj = new URL(url);
       const path = urlObj.pathname.toLowerCase();
       if (STATIC_RESOURCE_EXTENSIONS.some((ext) => path.endsWith(ext))) {
-        // console.log(`NetworkDebuggerStartTool: Filtering static resource by extension: ${path}`);
+        // console.log(`网络调试器启动工具: 按扩展名过滤静态资源: ${path}`);
         return true;
       }
       return false;
     } catch (e) {
-      console.error(
-        `NetworkDebuggerStartTool: Error parsing URL for extension filtering: ${url}`,
-        e,
-      );
+      console.error(`网络调试器启动工具: 解析URL进行扩展名过滤时出错: ${url}`, e);
       return false;
     }
   }
@@ -465,7 +456,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
           mimeType.startsWith(staticMime),
         )
       ) {
-        // console.log(`NetworkDebuggerStartTool: Filtering static resource by MIME type: ${mimeType}`);
+        // console.log(`网络调试器启动工具: 按MIME类型过滤静态资源: ${mimeType}`);
         return true;
       }
     }
@@ -490,7 +481,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
 
     const currentCount = this.requestCounters.get(tabId) || 0;
     if (currentCount >= NetworkDebuggerStartTool.MAX_REQUESTS_PER_CAPTURE) {
-      // console.log(`NetworkDebuggerStartTool: Request limit (${NetworkDebuggerStartTool.MAX_REQUESTS_PER_CAPTURE}) reached for tab ${tabId}. Ignoring: ${request.url}`);
+      // console.log(`网络调试器启动工具: 标签页 ${tabId} 达到请求限制 (${NetworkDebuggerStartTool.MAX_REQUESTS_PER_CAPTURE})。忽略: ${request.url}`);
       captureInfo.limitReached = true; // Mark that limit was hit
       return;
     }
@@ -514,11 +505,11 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
       if (request.postData) {
         captureInfo.requests[requestId].requestBody = request.postData;
       }
-      // console.log(`NetworkDebuggerStartTool: Captured request for tab ${tabId}: ${request.method} ${request.url}`);
+      // console.log(`网络调试器启动工具: 捕获标签页 ${tabId} 的请求: ${request.method} ${request.url}`);
     } else {
       // This could be a redirect. Update URL and other relevant fields.
       // Chrome often issues a new `requestWillBeSent` for redirects with the same `requestId` but a new `loaderId`.
-      // console.log(`NetworkDebuggerStartTool: Request ${requestId} updated (likely redirect) for tab ${tabId} to URL: ${request.url}`);
+      // console.log(`网络调试器启动工具: 标签页 ${tabId} 的请求 ${requestId} 已更新（可能是重定向）到URL: ${request.url}`);
       const existingRequest = captureInfo.requests[requestId];
       existingRequest.url = request.url; // Update URL due to redirect
       existingRequest.requestTime = timestamp * 1000; // Update time for the redirected request
@@ -542,7 +533,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
 
     // Secondary filtering based on MIME type, now that we have it
     if (this.shouldFilterByMimeType(response.mimeType, captureInfo.includeStatic)) {
-      // console.log(`NetworkDebuggerStartTool: Filtering request by MIME type (${response.mimeType}): ${requestInfo.url}`);
+      // console.log(`网络调试器启动工具: 按MIME类型过滤请求 (${response.mimeType}): ${requestInfo.url}`);
       delete captureInfo.requests[requestId]; // Remove from captured data
       // Note: We don't decrement requestCounter here as it's meant to track how many *potential* requests were processed up to MAX_REQUESTS.
       // Or, if MAX_REQUESTS is strictly for *stored* requests, then decrement. For now, let's assume it's for stored.
@@ -563,7 +554,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
     requestInfo.responseTime = timestamp * 1000; // Convert seconds to milliseconds
     if (type) requestInfo.type = type; // Update resource type if provided by this event
 
-    // console.log(`NetworkDebuggerStartTool: Received response for ${requestId} on tab ${tabId}: ${response.status}`);
+    // console.log(`网络调试器启动工具: 收到标签页 ${tabId} 上请求 ${requestId} 的响应: ${response.status}`);
   }
 
   private async handleLoadingFinished(tabId: number, params: any) {
@@ -585,7 +576,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
 
     if (this.shouldCaptureResponseBody(requestInfo)) {
       try {
-        // console.log(`NetworkDebuggerStartTool: Attempting to get response body for ${requestId} (${requestInfo.url})`);
+        // console.log(`网络调试器启动工具: 尝试获取请求 ${requestId} 的响应体 (${requestInfo.url})`);
         const responseBodyData = await this.getResponseBody(tabId, requestId);
         if (responseBodyData) {
           if (
@@ -599,7 +590,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
             requestInfo.responseBody = responseBodyData.body;
           }
           requestInfo.base64Encoded = responseBodyData.base64Encoded;
-          // console.log(`NetworkDebuggerStartTool: Successfully got response body for ${requestId}, size: ${requestInfo.responseBody?.length || 0} bytes`);
+          // console.log(`网络调试器启动工具: 成功获取请求 ${requestId} 的响应体，大小: ${requestInfo.responseBody?.length || 0} 字节`);
         }
       } catch (error) {
         // console.warn(`NetworkDebuggerStartTool: Failed to get response body for ${requestId}:`, error);
@@ -659,7 +650,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
     requestInfo.canceled = canceled;
     if (type) requestInfo.type = type;
     // timestamp here is when loading failed.
-    // console.log(`NetworkDebuggerStartTool: Loading failed for ${requestId} on tab ${tabId}: ${errorText}`);
+    // console.log(`网络调试器启动工具: 标签页 ${tabId} 上请求 ${requestId} 加载失败: ${errorText}`);
   }
 
   private async getResponseBody(
@@ -676,8 +667,8 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
         // Check if debugger is still attached to this tabId
         const attachedTabs = await chrome.debugger.getTargets();
         if (!attachedTabs.some((target) => target.tabId === tabId && target.attached)) {
-          // console.warn(`NetworkDebuggerStartTool: Debugger not attached to tab ${tabId} when trying to get response body for ${requestId}.`);
-          throw new Error(`Debugger not attached to tab ${tabId}`);
+          // console.warn(`网络调试器启动工具: 尝试获取请求 ${requestId} 的响应体时，调试器未附加到标签页 ${tabId}。`);
+          throw new Error(`调试器未附加到标签页 ${tabId}`);
         }
 
         const result = (await chrome.debugger.sendCommand({ tabId }, 'Network.getResponseBody', {
@@ -719,19 +710,17 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
     });
     keysToDelete.forEach((key) => this.pendingResponseBodies.delete(key));
 
-    console.log(`NetworkDebuggerStartTool: Cleaned up resources for tab ${tabId}.`);
+    console.log(`网络调试器启动工具: 已清理标签页 ${tabId} 的资源。`);
   }
 
   // isAutoStop is true if stop was triggered by timeout, false if by user/explicit call
   async stopCapture(tabId: number, isAutoStop: boolean = false): Promise<any> {
     const captureInfo = this.captureData.get(tabId);
     if (!captureInfo) {
-      return { success: false, message: 'No capture in progress for this tab.' };
+      return { success: false, message: '此标签页没有正在进行的捕获。' };
     }
 
-    console.log(
-      `NetworkDebuggerStartTool: Stopping capture for tab ${tabId}. Auto-stop: ${isAutoStop}`,
-    );
+    console.log(`网络调试器启动工具: 停止标签页 ${tabId} 的捕获。自动停止: ${isAutoStop}`);
 
     try {
       // Detach debugger first to prevent further events.
@@ -745,30 +734,19 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
         try {
           await chrome.debugger.sendCommand({ tabId }, 'Network.disable');
         } catch (e) {
-          console.warn(
-            `NetworkDebuggerStartTool: Error disabling network for tab ${tabId} (possibly already detached):`,
-            e,
-          );
+          console.warn(`网络调试器启动工具: 禁用标签页 ${tabId} 网络时出错（可能已分离）:`, e);
         }
         try {
           await chrome.debugger.detach({ tabId });
         } catch (e) {
-          console.warn(
-            `NetworkDebuggerStartTool: Error detaching debugger for tab ${tabId} (possibly already detached):`,
-            e,
-          );
+          console.warn(`网络调试器启动工具: 分离标签页 ${tabId} 调试器时出错（可能已分离）:`, e);
         }
       } else {
-        console.log(
-          `NetworkDebuggerStartTool: Debugger was not attached to tab ${tabId} at stopCapture.`,
-        );
+        console.log(`网络调试器启动工具: 在stopCapture时调试器未附加到标签页 ${tabId}。`);
       }
     } catch (error: any) {
       // Catch errors from getTargets or general logic
-      console.error(
-        'NetworkDebuggerStartTool: Error during debugger interaction in stopCapture:',
-        error,
-      );
+      console.error('网络调试器启动工具: 在stopCapture中调试器交互时出错:', error);
       // Proceed to cleanup and data formatting
     }
 
@@ -828,14 +806,14 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
     };
 
     console.log(
-      `NetworkDebuggerStartTool: Capture stopped for tab ${tabId}. ${resultData.requestCount} requests processed. Limit reached: ${resultData.requestLimitReached}. Stopped by: ${resultData.stoppedBy}`,
+      `网络调试器启动工具: 标签页 ${tabId} 的捕获已停止。处理了 ${resultData.requestCount} 个请求。达到限制: ${resultData.requestLimitReached}。停止原因: ${resultData.stoppedBy}`,
     );
 
     this.cleanupCapture(tabId); // Final cleanup of all internal states for this tab
 
     return {
       success: true,
-      message: `Capture stopped. ${resultData.requestCount} requests.`,
+      message: `捕获已停止。${resultData.requestCount} 个请求。`,
       data: resultData,
     };
   }
@@ -958,12 +936,12 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
         if (activeTabs.length > 0 && activeTabs[0]?.id) {
           tabToOperateOn = activeTabs[0];
         } else {
-          return createErrorResponse('No active tab found and no URL provided.');
+          return createErrorResponse('未找到活动标签页且未提供URL。');
         }
       }
 
       if (!tabToOperateOn?.id) {
-        return createErrorResponse('Failed to identify or create a target tab.');
+        return createErrorResponse('无法识别或创建目标标签页。');
       }
       const tabId = tabToOperateOn.id;
 
@@ -976,7 +954,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
         });
       } catch (error: any) {
         return createErrorResponse(
-          `Failed to start capture for tab ${tabId}: ${error.message || String(error)}`,
+          `启动标签页 ${tabId} 捕获失败: ${error.message || String(error)}`,
         );
       }
 
@@ -986,7 +964,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: `Network capture started on tab ${tabId}. Waiting for stop command or timeout.`,
+              message: `标签页 ${tabId} 上的网络捕获已启动。等待停止命令或超时。`,
               tabId,
               url: tabToOperateOn.url,
               maxCaptureTime,
@@ -999,7 +977,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error: any) {
-      console.error('NetworkDebuggerStartTool: Critical error during execute:', error);
+      console.error('网络调试器启动工具: 执行期间发生严重错误:', error);
       // If a tabId was involved and debugger might be attached, try to clean up.
       const tabIdToClean = tabToOperateOn?.id;
       if (tabIdToClean && this.captureData.has(tabIdToClean)) {
@@ -1008,9 +986,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
           .catch((e) => console.warn('Cleanup detach error:', e));
         this.cleanupCapture(tabIdToClean);
       }
-      return createErrorResponse(
-        `Error in NetworkDebuggerStartTool: ${error.message || String(error)}`,
-      );
+      return createErrorResponse(`网络调试器启动工具错误: ${error.message || String(error)}`);
     }
   }
 }
@@ -1031,23 +1007,21 @@ class NetworkDebuggerStopTool extends BaseBrowserToolExecutor {
   }
 
   async execute(): Promise<ToolResult> {
-    console.log(`NetworkDebuggerStopTool: Executing command.`);
+    console.log(`网络调试器停止工具: 执行命令。`);
 
     const startTool = NetworkDebuggerStartTool.instance;
     if (!startTool) {
-      return createErrorResponse(
-        'NetworkDebuggerStartTool instance not available. Cannot stop capture.',
-      );
+      return createErrorResponse('网络调试器启动工具实例不可用。无法停止捕获。');
     }
 
     // Get all tabs currently capturing
     const ongoingCaptures = Array.from(startTool['captureData'].keys());
     console.log(
-      `NetworkDebuggerStopTool: Found ${ongoingCaptures.length} ongoing captures: ${ongoingCaptures.join(', ')}`,
+      `网络调试器停止工具: 发现 ${ongoingCaptures.length} 个正在进行的捕获: ${ongoingCaptures.join(', ')}`,
     );
 
     if (ongoingCaptures.length === 0) {
-      return createErrorResponse('No active network captures found in any tab.');
+      return createErrorResponse('在任何标签页中都没有找到活动的网络捕获。');
     }
 
     // Get current active tab
@@ -1060,20 +1034,16 @@ class NetworkDebuggerStopTool extends BaseBrowserToolExecutor {
     if (activeTabId && startTool['captureData'].has(activeTabId)) {
       // If current active tab is capturing, prioritize stopping it
       primaryTabId = activeTabId;
-      console.log(
-        `NetworkDebuggerStopTool: Active tab ${activeTabId} is capturing, will stop it first.`,
-      );
+      console.log(`网络调试器停止工具: 活动标签页 ${activeTabId} 正在捕获，将首先停止它。`);
     } else if (ongoingCaptures.length === 1) {
       // If only one tab is capturing, stop it
       primaryTabId = ongoingCaptures[0];
-      console.log(
-        `NetworkDebuggerStopTool: Only one tab ${primaryTabId} is capturing, stopping it.`,
-      );
+      console.log(`网络调试器停止工具: 只有一个标签页 ${primaryTabId} 在捕获，停止它。`);
     } else {
       // If multiple tabs are capturing but current active tab is not among them, stop the first one
       primaryTabId = ongoingCaptures[0];
       console.log(
-        `NetworkDebuggerStopTool: Multiple tabs capturing, active tab not among them. Stopping tab ${primaryTabId} first.`,
+        `网络调试器停止工具: 多个标签页在捕获，活动标签页不在其中。首先停止标签页 ${primaryTabId}。`,
       );
     }
 
@@ -1084,14 +1054,14 @@ class NetworkDebuggerStopTool extends BaseBrowserToolExecutor {
     if (ongoingCaptures.length > 1) {
       const otherTabIds = ongoingCaptures.filter((id) => id !== primaryTabId);
       console.log(
-        `NetworkDebuggerStopTool: Stopping ${otherTabIds.length} additional captures: ${otherTabIds.join(', ')}`,
+        `网络调试器停止工具: 停止 ${otherTabIds.length} 个额外的捕获: ${otherTabIds.join(', ')}`,
       );
 
       for (const tabId of otherTabIds) {
         try {
           await startTool.stopCapture(tabId);
         } catch (error) {
-          console.error(`NetworkDebuggerStopTool: Error stopping capture on tab ${tabId}:`, error);
+          console.error(`网络调试器停止工具: 停止标签页 ${tabId} 捕获时出错:`, error);
         }
       }
     }
@@ -1103,13 +1073,12 @@ class NetworkDebuggerStopTool extends BaseBrowserToolExecutor {
     startTool: NetworkDebuggerStartTool,
     tabId: number,
   ): Promise<ToolResult> {
-    console.log(`NetworkDebuggerStopTool: Attempting to stop capture for tab ${tabId}.`);
+    console.log(`网络调试器停止工具: 尝试停止标签页 ${tabId} 的捕获。`);
     const stopResult = await startTool.stopCapture(tabId);
 
     if (!stopResult?.success) {
       return createErrorResponse(
-        stopResult?.message ||
-          `Failed to stop network capture for tab ${tabId}. It might not have been capturing.`,
+        stopResult?.message || `停止标签页 ${tabId} 的网络捕获失败。它可能没有在捕获。`,
       );
     }
 
@@ -1132,10 +1101,10 @@ class NetworkDebuggerStopTool extends BaseBrowserToolExecutor {
           type: 'text',
           text: JSON.stringify({
             success: true,
-            message: `Capture for tab ${tabId} (${resultData.tabUrl || 'N/A'}) stopped. ${resultData.requestCount || 0} requests captured.`,
+            message: `标签页 ${tabId} (${resultData.tabUrl || 'N/A'}) 的捕获已停止。捕获了 ${resultData.requestCount || 0} 个请求。`,
             tabId: tabId,
             tabUrl: resultData.tabUrl || 'N/A',
-            tabTitle: resultData.tabTitle || 'Unknown Tab',
+            tabTitle: resultData.tabTitle || '未知标签页',
             requestCount: resultData.requestCount || 0,
             commonRequestHeaders: resultData.commonRequestHeaders || {},
             commonResponseHeaders: resultData.commonResponseHeaders || {},

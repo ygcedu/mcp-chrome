@@ -1,7 +1,7 @@
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 
 /**
- * Get storage statistics
+ * 获取存储统计信息
  */
 export async function handleGetStorageStats(): Promise<{
   success: boolean;
@@ -9,14 +9,14 @@ export async function handleGetStorageStats(): Promise<{
   error?: string;
 }> {
   try {
-    // Get ContentIndexer statistics
+    // 获取ContentIndexer统计信息
     const { getGlobalContentIndexer } = await import('@/utils/content-indexer');
     const contentIndexer = getGlobalContentIndexer();
 
-    // Note: Semantic engine initialization is now user-controlled
-    // ContentIndexer will be initialized when user manually triggers semantic engine initialization
+    // 注意：语义引擎初始化现在由用户控制
+    // 当用户手动触发语义引擎初始化时，ContentIndexer将被初始化
 
-    // Get statistics
+    // 获取统计信息
     const stats = contentIndexer.getStats();
 
     return {
@@ -32,7 +32,7 @@ export async function handleGetStorageStats(): Promise<{
       },
     };
   } catch (error: any) {
-    console.error('Background: Failed to get storage stats:', error);
+    console.error('后台：获取存储统计信息失败:', error);
     return {
       success: false,
       error: error.message,
@@ -50,50 +50,50 @@ export async function handleGetStorageStats(): Promise<{
 }
 
 /**
- * Clear all data
+ * 清除所有数据
  */
 export async function handleClearAllData(): Promise<{ success: boolean; error?: string }> {
   try {
-    // 1. Clear all ContentIndexer indexes
+    // 1. 清除所有ContentIndexer索引
     try {
       const { getGlobalContentIndexer } = await import('@/utils/content-indexer');
       const contentIndexer = getGlobalContentIndexer();
 
       await contentIndexer.clearAllIndexes();
-      console.log('Storage: ContentIndexer indexes cleared successfully');
+      console.log('存储：ContentIndexer索引清除成功');
     } catch (indexerError) {
-      console.warn('Background: Failed to clear ContentIndexer indexes:', indexerError);
-      // Continue with other cleanup operations
+      console.warn('后台：清除ContentIndexer索引失败:', indexerError);
+      // 继续其他清理操作
     }
 
-    // 2. Clear all VectorDatabase data
+    // 2. 清除所有VectorDatabase数据
     try {
       const { clearAllVectorData } = await import('@/utils/vector-database');
       await clearAllVectorData();
-      console.log('Storage: Vector database data cleared successfully');
+      console.log('存储：向量数据库数据清除成功');
     } catch (vectorError) {
-      console.warn('Background: Failed to clear vector data:', vectorError);
-      // Continue with other cleanup operations
+      console.warn('后台：清除向量数据失败:', vectorError);
+      // 继续其他清理操作
     }
 
-    // 3. Clear related data in chrome.storage (preserve model preferences)
+    // 3. 清除chrome.storage中的相关数据（保留模型首选项）
     try {
       const keysToRemove = ['vectorDatabaseStats', 'lastCleanupTime', 'contentIndexerStats'];
       await chrome.storage.local.remove(keysToRemove);
-      console.log('Storage: Chrome storage data cleared successfully');
+      console.log('存储：Chrome存储数据清除成功');
     } catch (storageError) {
-      console.warn('Background: Failed to clear chrome storage data:', storageError);
+      console.warn('后台：清除chrome存储数据失败:', storageError);
     }
 
     return { success: true };
   } catch (error: any) {
-    console.error('Background: Failed to clear all data:', error);
+    console.error('后台：清除所有数据失败:', error);
     return { success: false, error: error.message };
   }
 }
 
 /**
- * Initialize storage manager module message listeners
+ * 初始化存储管理器模块消息监听器
  */
 export const initStorageManagerListener = () => {
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

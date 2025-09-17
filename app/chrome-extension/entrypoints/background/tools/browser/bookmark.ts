@@ -3,50 +3,50 @@ import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from 'chrome-mcp-shared';
 
 /**
- * Bookmark search tool parameters interface
+ * 书签搜索工具参数接口
  */
 interface BookmarkSearchToolParams {
-  query?: string; // Search keywords for matching bookmark titles and URLs
-  maxResults?: number; // Maximum number of results to return
-  folderPath?: string; // Optional, specify which folder to search in (can be ID or path string like "Work/Projects")
+  query?: string; // 用于匹配书签标题和URL的搜索关键词
+  maxResults?: number; // 返回结果的最大数量
+  folderPath?: string; // 可选，指定要搜索的文件夹（可以是ID或路径字符串，如"Work/Projects"）
 }
 
 /**
- * Bookmark add tool parameters interface
+ * 书签添加工具参数接口
  */
 interface BookmarkAddToolParams {
-  url?: string; // URL to add as bookmark, if not provided use current active tab URL
-  title?: string; // Bookmark title, if not provided use page title
-  parentId?: string; // Parent folder ID or path string (like "Work/Projects"), if not provided add to "Bookmarks Bar" folder
-  createFolder?: boolean; // Whether to automatically create parent folder if it doesn't exist
+  url?: string; // 要添加为书签的URL，如果未提供则使用当前活动标签页的URL
+  title?: string; // 书签标题，如果未提供则使用页面标题
+  parentId?: string; // 父文件夹ID或路径字符串（如"Work/Projects"），如果未提供则添加到"书签栏"文件夹
+  createFolder?: boolean; // 如果父文件夹不存在是否自动创建
 }
 
 /**
- * Bookmark delete tool parameters interface
+ * 书签删除工具参数接口
  */
 interface BookmarkDeleteToolParams {
-  bookmarkId?: string; // ID of bookmark to delete
-  url?: string; // URL of bookmark to delete (if ID not provided, search by URL)
-  title?: string; // Title of bookmark to delete (used for auxiliary matching, used together with URL)
+  bookmarkId?: string; // 要删除的书签ID
+  url?: string; // 要删除的书签URL（如果未提供ID，则按URL搜索）
+  title?: string; // 要删除的书签标题（用于辅助匹配，与URL一起使用）
 }
 
-// --- Helper Functions ---
+// --- 辅助函数 ---
 
 /**
- * Get the complete folder path of a bookmark
- * @param bookmarkNodeId ID of the bookmark or folder
- * @returns Returns folder path string (e.g., "Bookmarks Bar > Folder A > Subfolder B")
+ * 获取书签的完整文件夹路径
+ * @param bookmarkNodeId 书签或文件夹的ID
+ * @returns 返回文件夹路径字符串（例如，"书签栏 > 文件夹A > 子文件夹B"）
  */
 async function getBookmarkFolderPath(bookmarkNodeId: string): Promise<string> {
   const pathParts: string[] = [];
 
   try {
-    // First get the node itself to check if it's a bookmark or folder
+    // 首先获取节点本身以检查它是书签还是文件夹
     const initialNodes = await chrome.bookmarks.get(bookmarkNodeId);
     if (initialNodes.length > 0 && initialNodes[0]) {
       const initialNode = initialNodes[0];
 
-      // Build path starting from parent node (same for both bookmarks and folders)
+      // 从父节点开始构建路径（书签和文件夹都一样）
       let pathNodeId = initialNode.parentId;
       while (pathNodeId) {
         const parentNodes = await chrome.bookmarks.get(pathNodeId);
@@ -62,19 +62,19 @@ async function getBookmarkFolderPath(bookmarkNodeId: string): Promise<string> {
       }
     }
   } catch (error) {
-    console.error(`Error getting bookmark path for node ID ${bookmarkNodeId}:`, error);
-    return pathParts.join(' > ') || 'Error getting path';
+    console.error(`获取节点ID ${bookmarkNodeId} 的书签路径时出错:`, error);
+    return pathParts.join(' > ') || '获取路径时出错';
   }
 
   return pathParts.join(' > ');
 }
 
 /**
- * Find bookmark folder by ID or path string
- * If it's an ID, validate it
- * If it's a path string, try to parse it
- * @param pathOrId Path string (e.g., "Work/Projects") or folder ID
- * @returns Returns folder node, or null if not found
+ * 通过ID或路径字符串查找书签文件夹
+ * 如果是ID，则验证它
+ * 如果是路径字符串，则尝试解析它
+ * @param pathOrId 路径字符串（例如，"Work/Projects"）或文件夹ID
+ * @returns 返回文件夹节点，如果未找到则返回null
  */
 async function findFolderByPathOrId(
   pathOrId: string,
@@ -85,7 +85,7 @@ async function findFolderByPathOrId(
       return nodes[0];
     }
   } catch (e) {
-    // do nothing, try to parse as path string
+    // 什么都不做，尝试解析为路径字符串
   }
 
   const pathParts = pathOrId
@@ -126,10 +126,10 @@ async function findFolderByPathOrId(
 }
 
 /**
- * Create folder path (if it doesn't exist)
- * @param folderPath Folder path string (e.g., "Work/Projects/Subproject")
- * @param parentId Optional parent folder ID, defaults to "Bookmarks Bar"
- * @returns Returns the created or found final folder node
+ * 创建文件夹路径（如果不存在）
+ * @param folderPath 文件夹路径字符串（例如，"Work/Projects/Subproject"）
+ * @param parentId 可选的父文件夹ID，默认为"书签栏"
+ * @returns 返回创建或找到的最终文件夹节点
  */
 async function createFolderPath(
   folderPath: string,
@@ -141,14 +141,14 @@ async function createFolderPath(
     .filter((p) => p.length > 0);
 
   if (pathParts.length === 0) {
-    throw new Error('Folder path cannot be empty');
+    throw new Error('文件夹路径不能为空');
   }
 
-  // If no parent ID specified, use "Bookmarks Bar" folder
+  // 如果未指定父ID，使用"书签栏"文件夹
   let currentParentId: string = parentId || '';
   if (!currentParentId) {
     const rootChildren = await chrome.bookmarks.getChildren('0');
-    // Find "Bookmarks Bar" folder (usually ID is '1', but search by title for compatibility)
+    // 查找"书签栏"文件夹（通常ID是'1'，但为了兼容性按标题搜索）
     const bookmarkBarFolder = rootChildren.find(
       (node) =>
         !node.url &&
@@ -156,17 +156,17 @@ async function createFolderPath(
           node.title === 'Bookmarks bar' ||
           node.title === 'Bookmarks Bar'),
     );
-    currentParentId = bookmarkBarFolder?.id || '1'; // fallback to default ID
+    currentParentId = bookmarkBarFolder?.id || '1'; // 回退到默认ID
   }
 
   let currentFolder: chrome.bookmarks.BookmarkTreeNode | null = null;
 
-  // Create or find folders level by level
+  // 逐级创建或查找文件夹
   for (const folderName of pathParts) {
     const children: chrome.bookmarks.BookmarkTreeNode[] =
       await chrome.bookmarks.getChildren(currentParentId);
 
-    // Check if folder with same name already exists
+    // 检查是否已存在同名文件夹
     const existingFolder: chrome.bookmarks.BookmarkTreeNode | undefined = children.find(
       (child: chrome.bookmarks.BookmarkTreeNode) =>
         !child.url && child.title.toLowerCase() === folderName.toLowerCase(),
@@ -176,7 +176,7 @@ async function createFolderPath(
       currentFolder = existingFolder;
       currentParentId = existingFolder.id;
     } else {
-      // Create new folder
+      // 创建新文件夹
       currentFolder = await chrome.bookmarks.create({
         parentId: currentParentId,
         title: folderName,
@@ -186,34 +186,34 @@ async function createFolderPath(
   }
 
   if (!currentFolder) {
-    throw new Error('Failed to create folder path');
+    throw new Error('创建文件夹路径失败');
   }
 
   return currentFolder;
 }
 
 /**
- * Flatten bookmark tree (or node array) to bookmark list (excluding folders)
- * @param nodes Bookmark tree nodes to flatten
- * @returns Returns actual bookmark node array (nodes with URLs)
+ * 将书签树（或节点数组）扁平化为书签列表（排除文件夹）
+ * @param nodes 要扁平化的书签树节点
+ * @returns 返回实际的书签节点数组（有URL的节点）
  */
 function flattenBookmarkNodesToBookmarks(
   nodes: chrome.bookmarks.BookmarkTreeNode[],
 ): chrome.bookmarks.BookmarkTreeNode[] {
   const result: chrome.bookmarks.BookmarkTreeNode[] = [];
-  const stack = [...nodes]; // Use stack for iterative traversal to avoid deep recursion issues
+  const stack = [...nodes]; // 使用栈进行迭代遍历以避免深度递归问题
 
   while (stack.length > 0) {
     const node = stack.pop();
     if (!node) continue;
 
     if (node.url) {
-      // It's a bookmark
+      // 这是一个书签
       result.push(node);
     }
 
     if (node.children) {
-      // Add child nodes to stack for processing
+      // 将子节点添加到栈中进行处理
       for (let i = node.children.length - 1; i >= 0; i--) {
         stack.push(node.children[i]);
       }
@@ -224,23 +224,23 @@ function flattenBookmarkNodesToBookmarks(
 }
 
 /**
- * Find bookmarks by URL and title
- * @param url Bookmark URL
- * @param title Optional bookmark title for auxiliary matching
- * @returns Returns array of matching bookmarks
+ * 通过URL和标题查找书签
+ * @param url 书签URL
+ * @param title 可选的书签标题用于辅助匹配
+ * @returns 返回匹配的书签数组
  */
 async function findBookmarksByUrl(
   url: string,
   title?: string,
 ): Promise<chrome.bookmarks.BookmarkTreeNode[]> {
-  // Use Chrome API to search by URL
+  // 使用Chrome API按URL搜索
   const searchResults = await chrome.bookmarks.search({ url });
 
   if (!title) {
     return searchResults;
   }
 
-  // If title is provided, further filter results
+  // 如果提供了标题，进一步过滤结果
   const titleLower = title.toLowerCase();
   return searchResults.filter(
     (bookmark) => bookmark.title && bookmark.title.toLowerCase().includes(titleLower),
@@ -248,33 +248,31 @@ async function findBookmarksByUrl(
 }
 
 /**
- * Bookmark search tool
- * Used to search bookmarks in Chrome browser
+ * 书签搜索工具
+ * 用于在Chrome浏览器中搜索书签
  */
 class BookmarkSearchTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.BOOKMARK_SEARCH;
 
   /**
-   * Execute bookmark search
+   * 执行书签搜索
    */
   async execute(args: BookmarkSearchToolParams): Promise<ToolResult> {
     const { query = '', maxResults = 50, folderPath } = args;
 
-    console.log(
-      `BookmarkSearchTool: Searching bookmarks, keywords: "${query}", folder path: "${folderPath}"`,
-    );
+    console.log(`书签搜索工具: 搜索书签，关键词: "${query}"，文件夹路径: "${folderPath}"`);
 
     try {
       let bookmarksToSearch: chrome.bookmarks.BookmarkTreeNode[] = [];
       let targetFolderNode: chrome.bookmarks.BookmarkTreeNode | null = null;
 
-      // If folder path is specified, find that folder first
+      // 如果指定了文件夹路径，首先查找该文件夹
       if (folderPath) {
         targetFolderNode = await findFolderByPathOrId(folderPath);
         if (!targetFolderNode) {
-          return createErrorResponse(`Specified folder not found: "${folderPath}"`);
+          return createErrorResponse(`未找到指定文件夹: "${folderPath}"`);
         }
-        // Get all bookmarks in that folder and its subfolders
+        // 获取该文件夹及其子文件夹中的所有书签
         const subTree = await chrome.bookmarks.getSubTree(targetFolderNode.id);
         bookmarksToSearch =
           subTree.length > 0 ? flattenBookmarkNodesToBookmarks(subTree[0].children || []) : [];
@@ -284,7 +282,7 @@ class BookmarkSearchTool extends BaseBrowserToolExecutor {
 
       if (query) {
         if (targetFolderNode) {
-          // Has query keywords and specified folder: manually filter bookmarks from folder
+          // 有查询关键词且指定了文件夹：手动过滤文件夹中的书签
           const lowerCaseQuery = query.toLowerCase();
           filteredBookmarks = bookmarksToSearch.filter(
             (bookmark) =>
@@ -292,25 +290,25 @@ class BookmarkSearchTool extends BaseBrowserToolExecutor {
               (bookmark.url && bookmark.url.toLowerCase().includes(lowerCaseQuery)),
           );
         } else {
-          // Has query keywords but no specified folder: use API search
+          // 有查询关键词但未指定文件夹：使用API搜索
           filteredBookmarks = await chrome.bookmarks.search({ query });
-          // API search may return folders (if title matches), filter them out
+          // API搜索可能返回文件夹（如果标题匹配），将它们过滤掉
           filteredBookmarks = filteredBookmarks.filter((item) => !!item.url);
         }
       } else {
-        // No query keywords
+        // 没有查询关键词
         if (!targetFolderNode) {
-          // No folder path specified, get all bookmarks
+          // 未指定文件夹路径，获取所有书签
           const tree = await chrome.bookmarks.getTree();
           bookmarksToSearch = flattenBookmarkNodesToBookmarks(tree);
         }
         filteredBookmarks = bookmarksToSearch;
       }
 
-      // Limit number of results
+      // 限制结果数量
       const limitedResults = filteredBookmarks.slice(0, maxResults);
 
-      // Add folder path information for each bookmark
+      // 为每个书签添加文件夹路径信息
       const resultsWithPath = await Promise.all(
         limitedResults.map(async (bookmark) => {
           const path = await getBookmarkFolderPath(bookmark.id);
@@ -335,7 +333,7 @@ class BookmarkSearchTool extends BaseBrowserToolExecutor {
                 query: query || null,
                 folderSearched: targetFolderNode
                   ? targetFolderNode.title || targetFolderNode.id
-                  : 'All bookmarks',
+                  : '所有书签',
                 bookmarks: resultsWithPath,
               },
               null,
@@ -346,65 +344,65 @@ class BookmarkSearchTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error searching bookmarks:', error);
+      console.error('搜索书签时出错:', error);
       return createErrorResponse(
-        `Error searching bookmarks: ${error instanceof Error ? error.message : String(error)}`,
+        `搜索书签时出错: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
 }
 
 /**
- * Bookmark add tool
- * Used to add new bookmarks to Chrome browser
+ * 书签添加工具
+ * 用于向Chrome浏览器添加新书签
  */
 class BookmarkAddTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.BOOKMARK_ADD;
 
   /**
-   * Execute add bookmark operation
+   * 执行添加书签操作
    */
   async execute(args: BookmarkAddToolParams): Promise<ToolResult> {
     const { url, title, parentId, createFolder = false } = args;
 
-    console.log(`BookmarkAddTool: Adding bookmark, options:`, args);
+    console.log(`书签添加工具: 添加书签，选项:`, args);
 
     try {
-      // If no URL provided, use current active tab
+      // 如果未提供URL，使用当前活动标签页
       let bookmarkUrl = url;
       let bookmarkTitle = title;
 
       if (!bookmarkUrl) {
-        // Get current active tab
+        // 获取当前活动标签页
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tabs[0] || !tabs[0].url) {
-          // tab.url might be undefined (e.g., chrome:// pages)
-          return createErrorResponse('No active tab with valid URL found, and no URL provided');
+          // tab.url可能是undefined（例如，chrome://页面）
+          return createErrorResponse('未找到有效URL的活动标签页，且未提供URL');
         }
 
         bookmarkUrl = tabs[0].url;
         if (!bookmarkTitle) {
-          bookmarkTitle = tabs[0].title || bookmarkUrl; // If tab title is empty, use URL as title
+          bookmarkTitle = tabs[0].title || bookmarkUrl; // 如果标签页标题为空，使用URL作为标题
         }
       }
 
       if (!bookmarkUrl) {
-        // Should have been caught above, but as a safety measure
-        return createErrorResponse('URL is required to create bookmark');
+        // 上面应该已经捕获了，但作为安全措施
+        return createErrorResponse('创建书签需要URL');
       }
 
-      // Parse parentId (could be ID or path string)
+      // 解析parentId（可能是ID或路径字符串）
       let actualParentId: string | undefined = undefined;
       if (parentId) {
         let folderNode = await findFolderByPathOrId(parentId);
 
         if (!folderNode && createFolder) {
-          // If folder doesn't exist and creation is allowed, create folder path
+          // 如果文件夹不存在且允许创建，创建文件夹路径
           try {
             folderNode = await createFolderPath(parentId);
           } catch (createError) {
             return createErrorResponse(
-              `Failed to create folder path: ${createError instanceof Error ? createError.message : String(createError)}`,
+              `创建文件夹路径失败: ${createError instanceof Error ? createError.message : String(createError)}`,
             );
           }
         }
@@ -412,24 +410,24 @@ class BookmarkAddTool extends BaseBrowserToolExecutor {
         if (folderNode) {
           actualParentId = folderNode.id;
         } else {
-          // Check if parentId might be a direct ID missed by findFolderByPathOrId (e.g., root folder '1')
+          // 检查parentId是否可能是findFolderByPathOrId遗漏的直接ID（例如，根文件夹'1'）
           try {
             const nodes = await chrome.bookmarks.get(parentId);
             if (nodes && nodes.length > 0 && !nodes[0].url) {
               actualParentId = nodes[0].id;
             } else {
               return createErrorResponse(
-                `Specified parent folder (ID/path: "${parentId}") not found or is not a folder${createFolder ? ', and creation failed' : '. You can set createFolder=true to auto-create folders'}`,
+                `指定的父文件夹（ID/路径: "${parentId}"）未找到或不是文件夹${createFolder ? '，且创建失败' : '。您可以设置createFolder=true来自动创建文件夹'}`,
               );
             }
           } catch (e) {
             return createErrorResponse(
-              `Specified parent folder (ID/path: "${parentId}") not found or invalid${createFolder ? ', and creation failed' : '. You can set createFolder=true to auto-create folders'}`,
+              `指定的父文件夹（ID/路径: "${parentId}"）未找到或无效${createFolder ? '，且创建失败' : '。您可以设置createFolder=true来自动创建文件夹'}`,
             );
           }
         }
       } else {
-        // If no parentId specified, default to "Bookmarks Bar"
+        // 如果未指定parentId，默认为"书签栏"
         const rootChildren = await chrome.bookmarks.getChildren('0');
         const bookmarkBarFolder = rootChildren.find(
           (node) =>
@@ -438,18 +436,18 @@ class BookmarkAddTool extends BaseBrowserToolExecutor {
               node.title === 'Bookmarks bar' ||
               node.title === 'Bookmarks Bar'),
         );
-        actualParentId = bookmarkBarFolder?.id || '1'; // fallback to default ID
+        actualParentId = bookmarkBarFolder?.id || '1'; // 回退到默认ID
       }
-      // If actualParentId is still undefined, chrome.bookmarks.create will use default "Other Bookmarks", but we've set Bookmarks Bar
+      // 如果actualParentId仍然是undefined，chrome.bookmarks.create将使用默认的"其他书签"，但我们已设置为书签栏
 
-      // Create bookmark
+      // 创建书签
       const newBookmark = await chrome.bookmarks.create({
-        parentId: actualParentId, // If undefined, API uses default value
-        title: bookmarkTitle || bookmarkUrl, // Ensure title is never empty
+        parentId: actualParentId, // 如果是undefined，API使用默认值
+        title: bookmarkTitle || bookmarkUrl, // 确保标题永远不为空
         url: bookmarkUrl,
       });
 
-      // Get bookmark path
+      // 获取书签路径
       const path = await getBookmarkFolderPath(newBookmark.id);
 
       return {
@@ -459,7 +457,7 @@ class BookmarkAddTool extends BaseBrowserToolExecutor {
             text: JSON.stringify(
               {
                 success: true,
-                message: 'Bookmark added successfully',
+                message: '书签添加成功',
                 bookmark: {
                   id: newBookmark.id,
                   title: newBookmark.title,
@@ -467,7 +465,7 @@ class BookmarkAddTool extends BaseBrowserToolExecutor {
                   dateAdded: newBookmark.dateAdded,
                   folderPath: path,
                 },
-                folderCreated: createFolder && parentId ? 'Folder created if necessary' : false,
+                folderCreated: createFolder && parentId ? '如有必要已创建文件夹' : false,
               },
               null,
               2,
@@ -477,74 +475,72 @@ class BookmarkAddTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error adding bookmark:', error);
+      console.error('添加书签时出错:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
 
-      // Provide more specific error messages for common error cases, such as trying to bookmark chrome:// URLs
+      // 为常见错误情况提供更具体的错误消息，例如尝试收藏chrome://URL
       if (errorMessage.includes("Can't bookmark URLs of type")) {
         return createErrorResponse(
-          `Error adding bookmark: Cannot bookmark this type of URL (e.g., chrome:// system pages). ${errorMessage}`,
+          `添加书签时出错: 无法收藏此类型的URL（例如，chrome://系统页面）。${errorMessage}`,
         );
       }
 
-      return createErrorResponse(`Error adding bookmark: ${errorMessage}`);
+      return createErrorResponse(`添加书签时出错: ${errorMessage}`);
     }
   }
 }
 
 /**
- * Bookmark delete tool
- * Used to delete bookmarks in Chrome browser
+ * 书签删除工具
+ * 用于删除Chrome浏览器中的书签
  */
 class BookmarkDeleteTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.BOOKMARK_DELETE;
 
   /**
-   * Execute delete bookmark operation
+   * 执行删除书签操作
    */
   async execute(args: BookmarkDeleteToolParams): Promise<ToolResult> {
     const { bookmarkId, url, title } = args;
 
-    console.log(`BookmarkDeleteTool: Deleting bookmark, options:`, args);
+    console.log(`书签删除工具: 删除书签，选项:`, args);
 
     if (!bookmarkId && !url) {
-      return createErrorResponse('Must provide bookmark ID or URL to delete bookmark');
+      return createErrorResponse('必须提供书签ID或URL来删除书签');
     }
 
     try {
       let bookmarksToDelete: chrome.bookmarks.BookmarkTreeNode[] = [];
 
       if (bookmarkId) {
-        // Delete by ID
+        // 按ID删除
         try {
           const nodes = await chrome.bookmarks.get(bookmarkId);
           if (nodes && nodes.length > 0 && nodes[0].url) {
             bookmarksToDelete = nodes;
           } else {
-            return createErrorResponse(
-              `Bookmark with ID "${bookmarkId}" not found, or the ID does not correspond to a bookmark`,
-            );
+            return createErrorResponse(`未找到ID为"${bookmarkId}"的书签，或该ID不对应书签`);
           }
         } catch (error) {
-          return createErrorResponse(`Invalid bookmark ID: "${bookmarkId}"`);
+          return createErrorResponse(`无效的书签ID: "${bookmarkId}"`);
         }
       } else if (url) {
-        // Delete by URL
+        // 按URL删除
         bookmarksToDelete = await findBookmarksByUrl(url, title);
         if (bookmarksToDelete.length === 0) {
           return createErrorResponse(
-            `No bookmark found with URL "${url}"${title ? ` (title contains: "${title}")` : ''}`,
+            `未找到URL为"${url}"的书签${title ? ` (标题包含: "${title}")` : ''}`,
           );
         }
       }
 
-      // Delete found bookmarks
+      // 删除找到的书签
       const deletedBookmarks = [];
       const errors = [];
 
       for (const bookmark of bookmarksToDelete) {
         try {
-          // Get path information before deletion
+          // 在删除前获取路径信息
           const path = await getBookmarkFolderPath(bookmark.id);
 
           await chrome.bookmarks.remove(bookmark.id);
@@ -557,19 +553,17 @@ class BookmarkDeleteTool extends BaseBrowserToolExecutor {
           });
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
-          errors.push(
-            `Failed to delete bookmark "${bookmark.title}" (ID: ${bookmark.id}): ${errorMsg}`,
-          );
+          errors.push(`删除书签"${bookmark.title}"失败 (ID: ${bookmark.id}): ${errorMsg}`);
         }
       }
 
       if (deletedBookmarks.length === 0) {
-        return createErrorResponse(`Failed to delete bookmarks: ${errors.join('; ')}`);
+        return createErrorResponse(`删除书签失败: ${errors.join('; ')}`);
       }
 
       const result: any = {
         success: true,
-        message: `Successfully deleted ${deletedBookmarks.length} bookmark(s)`,
+        message: `成功删除 ${deletedBookmarks.length} 个书签`,
         deletedBookmarks,
       };
 
@@ -588,9 +582,9 @@ class BookmarkDeleteTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error deleting bookmark:', error);
+      console.error('删除书签时出错:', error);
       return createErrorResponse(
-        `Error deleting bookmark: ${error instanceof Error ? error.message : String(error)}`,
+        `删除书签时出错: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

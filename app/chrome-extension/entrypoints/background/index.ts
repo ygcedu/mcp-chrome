@@ -7,32 +7,30 @@ import { initStorageManagerListener } from './storage-manager';
 import { cleanupModelCache } from '@/utils/semantic-similarity-engine';
 
 /**
- * Background script entry point
- * Initializes all background services and listeners
+ * 后台脚本入口点
+ * 初始化所有后台服务和监听器
  */
 export default defineBackground(() => {
-  // Initialize core services
+  // 初始化核心服务
   initNativeHostListener();
   initSemanticSimilarityListener();
   initStorageManagerListener();
 
-  // Conditionally initialize semantic similarity engine if model cache exists
+  // 如果模型缓存存在，有条件地初始化语义相似度引擎
   initializeSemanticEngineIfCached()
     .then((initialized) => {
       if (initialized) {
-        console.log('Background: Semantic similarity engine initialized from cache');
+        console.log('后台：语义相似度引擎已从缓存初始化');
       } else {
-        console.log(
-          'Background: Semantic similarity engine initialization skipped (no cache found)',
-        );
+        console.log('后台：跳过语义相似度引擎初始化（未找到缓存）');
       }
     })
     .catch((error) => {
-      console.warn('Background: Failed to conditionally initialize semantic engine:', error);
+      console.warn('后台：有条件初始化语义引擎失败：', error);
     });
 
-  // Initial cleanup on startup
+  // 启动时的初始清理
   cleanupModelCache().catch((error) => {
-    console.warn('Background: Initial cache cleanup failed:', error);
+    console.warn('后台：初始缓存清理失败：', error);
   });
 });

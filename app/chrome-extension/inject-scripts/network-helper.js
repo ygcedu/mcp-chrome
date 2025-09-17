@@ -1,37 +1,37 @@
 /* eslint-disable */
 /**
- * Network Capture Helper
+ * 网络捕获助手
  *
- * This script helps replay network requests with the original cookies and headers.
+ * 此脚本帮助使用原始 cookie 和标头重放网络请求。
  */
 
-// Prevent duplicate initialization
+// 防止重复初始化
 if (window.__NETWORK_CAPTURE_HELPER_INITIALIZED__) {
-  // Already initialized, skip
+  // 已初始化，跳过
 } else {
   window.__NETWORK_CAPTURE_HELPER_INITIALIZED__ = true;
 
   /**
-   * Replay a network request
-   * @param {string} url - The URL to send the request to
-   * @param {string} method - The HTTP method to use
-   * @param {Object} headers - The headers to include in the request
-   * @param {any} body - The body of the request
-   * @param {number} timeout - Timeout in milliseconds (default: 30000)
-   * @returns {Promise<Object>} - The response data
+   * 重放网络请求
+   * @param {string} url - 要发送请求的 URL
+   * @param {string} method - 要使用的 HTTP 方法
+   * @param {Object} headers - 请求中包含的标头
+   * @param {any} body - 请求的主体
+   * @param {number} timeout - 超时时间（毫秒）（默认：30000）
+   * @returns {Promise<Object>} - 响应数据
    */
   async function replayNetworkRequest(url, method, headers, body, timeout = 30000) {
     try {
-      // Create fetch options
+      // 创建 fetch 选项
       const options = {
         method: method,
         headers: headers || {},
-        credentials: 'include', // Include cookies
+        credentials: 'include', // 包含 cookie
         mode: 'cors',
         cache: 'no-cache',
       };
 
-      // Add body for non-GET requests
+      // 为非 GET 请求添加主体
       if (method !== 'GET' && method !== 'HEAD' && body !== undefined) {
         options.body = body;
       }
@@ -57,19 +57,19 @@ if (window.__NETWORK_CAPTURE_HELPER_INITIALIZED__) {
       // 发送带超时的请求
       const response = await fetchWithTimeout(url, options, timeout);
 
-      // Process response
+      // 处理响应
       const responseData = {
         status: response.status,
         statusText: response.statusText,
         headers: {},
       };
 
-      // Get response headers
+      // 获取响应标头
       response.headers.forEach((value, key) => {
         responseData.headers[key] = value;
       });
 
-      // Try to get response body based on content type
+      // 尝试根据内容类型获取响应主体
       const contentType = response.headers.get('content-type') || '';
 
       try {
@@ -82,11 +82,11 @@ if (window.__NETWORK_CAPTURE_HELPER_INITIALIZED__) {
         ) {
           responseData.body = await response.text();
         } else {
-          // For binary data, just indicate it was received but not parsed
-          responseData.body = '[Binary data not displayed]';
+          // 对于二进制数据，只表示已接收但未解析
+          responseData.body = '[二进制数据未显示]';
         }
       } catch (error) {
-        responseData.body = `[Error parsing response body: ${error.message}]`;
+        responseData.body = `[解析响应主体时出错: ${error.message}]`;
       }
 
       return {
@@ -94,20 +94,20 @@ if (window.__NETWORK_CAPTURE_HELPER_INITIALIZED__) {
         response: responseData,
       };
     } catch (error) {
-      console.error('Error replaying request:', error);
+      console.error('重放请求时出错:', error);
       return {
         success: false,
-        error: `Error replaying request: ${error.message}`,
+        error: `重放请求时出错: ${error.message}`,
       };
     }
   }
 
-  // Listen for messages from the extension
+  // 监听来自扩展的消息
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-    // Respond to ping message
+    // 响应 ping 消息
     if (request.action === 'chrome_network_request_ping') {
       sendResponse({ status: 'pong' });
-      return false; // Synchronous response
+      return false; // 同步响应
     } else if (request.action === 'sendPureNetworkRequest') {
       replayNetworkRequest(
         request.url,
@@ -120,10 +120,10 @@ if (window.__NETWORK_CAPTURE_HELPER_INITIALIZED__) {
         .catch((error) => {
           sendResponse({
             success: false,
-            error: `Unexpected error: ${error.message}`,
+            error: `意外错误: ${error.message}`,
           });
         });
-      return true; // Indicates async response
+      return true; // 表示异步响应
     }
   });
 }

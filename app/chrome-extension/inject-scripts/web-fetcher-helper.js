@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
-  // Already initialized, skip
+  // 已初始化，跳过
 } else {
   window.__WEB_FETCHER_HELPER_INITIALIZED__ = true;
 
@@ -22,22 +22,22 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
    */
 
   /*
-   * This code is heavily based on Arc90's readability.js (1.7.1) script
-   * available at: http://code.google.com/p/arc90labs-readability
+   * 此代码大量基于 Arc90 的 readability.js (1.7.1) 脚本
+   * 可在以下地址获取: http://code.google.com/p/arc90labs-readability
    */
 
   /**
-   * Public constructor.
-   * @param {HTMLDocument} doc     The document to parse.
-   * @param {Object}       options The options object.
+   * 公共构造函数。
+   * @param {HTMLDocument} doc     要解析的文档。
+   * @param {Object}       options 选项对象。
    */
   function Readability(doc, options) {
-    // In some older versions, people passed a URI as the first argument. Cope:
+    // 在一些旧版本中，人们将 URI 作为第一个参数传递。处理这种情况：
     if (options && options.documentElement) {
       doc = options;
       options = arguments[2];
     } else if (!doc || !doc.documentElement) {
-      throw new Error('First argument to Readability constructor should be a document object.');
+      throw new Error('Readability 构造函数的第一个参数应该是一个文档对象。');
     }
     options = options || {};
 
@@ -50,7 +50,7 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
     this._attempts = [];
     this._metadata = {};
 
-    // Configurable options
+    // 可配置选项
     this._debug = !!options.debug;
     this._maxElemsToParse = options.maxElemsToParse || this.DEFAULT_MAX_ELEMS_TO_PARSE;
     this._nbTopCandidates = options.nbTopCandidates || this.DEFAULT_N_TOP_CANDIDATES;
@@ -66,11 +66,11 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
     this._allowedVideoRegex = options.allowedVideoRegex || this.REGEXPS.videos;
     this._linkDensityModifier = options.linkDensityModifier || 0;
 
-    // Start with all flags set
+    // 从所有标志设置开始
     this._flags =
       this.FLAG_STRIP_UNLIKELYS | this.FLAG_WEIGHT_CLASSES | this.FLAG_CLEAN_CONDITIONALLY;
 
-    // Control whether log messages are sent to the console
+    // 控制是否将日志消息发送到控制台
     if (this._debug) {
       let logNode = function (node) {
         if (node.nodeType == node.TEXT_NODE) {
@@ -91,7 +91,7 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
           });
           args.unshift('Reader: (Readability)');
 
-          // Debug logging removed
+          // 已移除调试日志
         } else if (typeof dump !== 'undefined') {
           /* global dump */
           var msg = Array.prototype.map
@@ -116,24 +116,23 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
     ELEMENT_NODE: 1,
     TEXT_NODE: 3,
 
-    // Max number of nodes supported by this parser. Default: 0 (no limit)
+    // 此解析器支持的最大节点数。默认：0（无限制）
     DEFAULT_MAX_ELEMS_TO_PARSE: 0,
 
-    // The number of top candidates to consider when analysing how
-    // tight the competition is among candidates.
+    // 分析候选者之间竞争激烈程度时要考虑的顶级候选者数量。
     DEFAULT_N_TOP_CANDIDATES: 5,
 
-    // Element tags to score by default.
+    // 默认要评分的元素标签。
     DEFAULT_TAGS_TO_SCORE: 'section,h2,h3,h4,h5,h6,p,td,pre'.toUpperCase().split(','),
 
-    // The default number of chars an article must have in order to return a result
+    // 文章必须具有的默认字符数以便返回结果
     DEFAULT_CHAR_THRESHOLD: 500,
 
-    // All of the regular expressions in use within readability.
-    // Defined up here so we don't instantiate them repeatedly in loops.
+    // readability 中使用的所有正则表达式。
+    // 在这里定义，这样我们就不会在循环中重复实例化它们。
     REGEXPS: {
-      // NOTE: These two regular expressions are duplicated in
-      // Readability-readerable.js. Please keep both copies in sync.
+      // 注意：这两个正则表达式在 Readability-readerable.js 中重复。
+      // 请保持两个副本同步。
       unlikelyCandidates:
         /-ad-|ai2html|banner|breadcrumbs|combx|comment|community|cover-wrap|disqus|extra|footer|gdpr|header|legends|menu|related|remark|replies|rss|shoutbox|sidebar|skyscraper|social|sponsor|supplemental|ad-break|agegate|pagination|pager|popup|yom-remote/i,
       okMaybeItsACandidate: /and|article|body|column|content|main|shadow/i,
@@ -158,13 +157,13 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
       hashUrl: /^#.+/,
       srcsetUrl: /(\S+)(\s+[\d.]+[xw])?(\s*(?:,|$))/g,
       b64DataUrl: /^data:\s*([^\s;,]+)\s*;\s*base64\s*,/i,
-      // Commas as used in Latin, Sindhi, Chinese and various other scripts.
-      // see: https://en.wikipedia.org/wiki/Comma#Comma_variants
+      // 拉丁文、信德文、中文和其他各种文字中使用的逗号。
+      // 参见: https://en.wikipedia.org/wiki/Comma#Comma_variants
       commas: /\u002C|\u060C|\uFE50|\uFE10|\uFE11|\u2E41|\u2E34|\u2E32|\uFF0C/g,
-      // See: https://schema.org/Article
+      // 参见: https://schema.org/Article
       jsonLdArticleTypes:
         /^Article|AdvertiserContentArticle|NewsArticle|AnalysisNewsArticle|AskPublicNewsArticle|BackgroundNewsArticle|OpinionNewsArticle|ReportageNewsArticle|ReviewNewsArticle|Report|SatiricalArticle|ScholarlyArticle|MedicalScholarlyArticle|SocialMediaPosting|BlogPosting|LiveBlogPosting|DiscussionForumPosting|TechArticle|APIReference$/,
-      // used to see if a node's content matches words commonly used for ad blocks or loading indicators
+      // 用于查看节点的内容是否与广告块或加载指示器常用的单词匹配
       adWords: /^(ad(vertising|vertisement)?|pub(licité)?|werb(ung)?|广告|Реклама|Anuncio)$/iu,
       loadingWords: /^((loading|正在加载|Загрузка|chargement|cargando)(…|\.\.\.)?)$/iu,
     },
@@ -200,8 +199,8 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
 
     DEPRECATED_SIZE_ATTRIBUTE_ELEMS: ['TABLE', 'TH', 'TD', 'HR', 'PRE'],
 
-    // The commented out elements qualify as phrasing content but tend to be
-    // removed by readability when put into paragraphs, so we ignore them here.
+    // 被注释的元素符合短语内容的条件，但在放入段落时往往会被 readability 移除，
+    // 所以我们在这里忽略它们。
     PHRASING_ELEMS: [
       // "CANVAS", "IFRAME", "SVG", "VIDEO",
       'ABBR',
@@ -245,10 +244,10 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
       'WBR',
     ],
 
-    // These are the classes that readability sets itself.
+    // 这些是 readability 自身设置的类。
     CLASSES_TO_PRESERVE: ['page'],
 
-    // These are the list of HTML entities that need to be escaped.
+    // 这些是需要转义的 HTML 实体列表。
     HTML_ESCAPE_MAP: {
       lt: '<',
       gt: '>',
@@ -258,37 +257,36 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
     },
 
     /**
-     * Run any post-process modifications to article content as necessary.
+     * 根据需要对文章内容运行任何后处理修改。
      *
      * @param Element
      * @return void
      **/
     _postProcessContent(articleContent) {
-      // Readability cannot open relative uris so we convert them to absolute uris.
+      // Readability 无法打开相对 URI，所以我们将它们转换为绝对 URI。
       this._fixRelativeUris(articleContent);
 
       this._simplifyNestedElements(articleContent);
 
       if (!this._keepClasses) {
-        // Remove classes.
+        // 移除类。
         this._cleanClasses(articleContent);
       }
     },
 
     /**
-     * Iterates over a NodeList, calls `filterFn` for each node and removes node
-     * if function returned `true`.
+     * 遍历 NodeList，为每个节点调用 `filterFn`，如果函数返回 `true` 则移除节点。
      *
-     * If function is not passed, removes all the nodes in node list.
+     * 如果未传递函数，则移除节点列表中的所有节点。
      *
-     * @param NodeList nodeList The nodes to operate on
-     * @param Function filterFn the function to use as a filter
+     * @param NodeList nodeList 要操作的节点
+     * @param Function filterFn 用作过滤器的函数
      * @return void
      */
     _removeNodes(nodeList, filterFn) {
-      // Avoid ever operating on live node lists.
+      // 避免在实时节点列表上操作。
       if (this._docJSDOMParser && nodeList._isLiveNodeList) {
-        throw new Error('Do not pass live node lists to _removeNodes');
+        throw new Error('不要将实时节点列表传递给 _removeNodes');
       }
       for (var i = nodeList.length - 1; i >= 0; i--) {
         var node = nodeList[i];
@@ -311,7 +309,7 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
     _replaceNodeTags(nodeList, newTagName) {
       // Avoid ever operating on live node lists.
       if (this._docJSDOMParser && nodeList._isLiveNodeList) {
-        throw new Error('Do not pass live node lists to _replaceNodeTags');
+        throw new Error('不要将实时节点列表传递给 _replaceNodeTags');
       }
       for (const node of nodeList) {
         this._setNodeTag(node, newTagName);
@@ -2457,7 +2455,7 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
             }
 
             if (errs.length) {
-              this.log('Checks failed', errs);
+              this.log('检查失败', errs);
               return true;
             }
 
@@ -2577,7 +2575,7 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
       if (this._maxElemsToParse > 0) {
         var numTags = this._doc.getElementsByTagName('*').length;
         if (numTags > this._maxElemsToParse) {
-          throw new Error('Aborting parsing document; ' + numTags + ' elements found');
+          throw new Error('中止解析文档；找到 ' + numTags + ' 个元素');
         }
       }
 
@@ -2692,7 +2690,7 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
           if (element) {
             rawHtml = element.outerHTML;
           } else {
-            throw new Error(`No element found matching selector: ${request.selector}`);
+            throw new Error(`找不到与选择器匹配的元素: ${request.selector}`);
           }
         } else {
           // Otherwise get the entire page content
@@ -2709,7 +2707,7 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
       } catch (error) {
         sendResponse({
           success: false,
-          error: `Failed to get HTML content: ${error.message}`,
+          error: `获取HTML内容失败: ${error.message}`,
         });
       }
     }
@@ -2730,7 +2728,7 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
               selector: request.selector,
             });
           } else {
-            throw new Error(`No element found matching selector: ${request.selector}`);
+            throw new Error(`找不到与选择器匹配的元素: ${request.selector}`);
           }
         } else {
           // Otherwise use Readability to extract the main content
@@ -2779,10 +2777,10 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
           }
         }
       } catch (error) {
-        console.error('Error extracting text content:', error);
+        console.error('提取文本内容时出错:', error);
         sendResponse({
           success: false,
-          error: `Failed to extract text content: ${error.message}`,
+          error: `提取文本内容失败: ${error.message}`,
         });
       }
 
@@ -2868,9 +2866,7 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
           }
         }
       } catch (error) {
-        console.warn(
-          `Cannot access iframe content (possible cross-origin restriction): ${error.message}`,
-        );
+        console.warn(`无法访问 iframe 内容（可能的跨域限制）: ${error.message}`);
       }
     }
 

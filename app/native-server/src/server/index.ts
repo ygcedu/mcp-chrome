@@ -14,14 +14,14 @@ import { randomUUID } from 'node:crypto';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { getMcpServer } from '../mcp/mcp-server';
 
-// Define request body type (if data needs to be retrieved from HTTP requests)
+// 定义请求体类型（如果需要从 HTTP 请求中获取数据）
 interface ExtensionRequestPayload {
-  data?: any; // Data you want to pass to the extension
+  data?: any; // 您要传递给扩展的数据
 }
 
 export class Server {
   private fastify: FastifyInstance;
-  public isRunning = false; // Changed to public or provide a getter
+  public isRunning = false; // 改为 public 或提供 getter 方法
   private nativeHost: NativeMessagingHost | null = null;
   private transportsMap: Map<string, StreamableHTTPServerTransport | SSEServerTransport> =
     new Map();
@@ -32,7 +32,7 @@ export class Server {
     this.setupRoutes();
   }
   /**
-   * Associate NativeMessagingHost instance
+   * 关联 NativeMessagingHost 实例
    */
   public setNativeHost(nativeHost: NativeMessagingHost): void {
     this.nativeHost = nativeHost;
@@ -45,11 +45,10 @@ export class Server {
   }
 
   private setupRoutes(): void {
-    // for ping
+    // 用于 ping
     this.fastify.get(
       '/ask-extension',
       async (request: FastifyRequest<{ Body: ExtensionRequestPayload }>, reply: FastifyReply) => {
-
         if (!this.nativeHost) {
           return reply
             .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
@@ -62,7 +61,7 @@ export class Server {
         }
 
         try {
-          // wait from extension message
+          // 等待来自扩展的消息
           const extensionResponse = await this.nativeHost.sendRequestToExtensionAndWait(
             request.query,
             'process_data',
@@ -84,17 +83,17 @@ export class Server {
       },
     );
 
-    // Compatible with SSE
+    // 兼容 SSE
     this.fastify.get('/sse', async (_, reply) => {
       try {
-        // Set SSE headers
+        // 设置 SSE 头
         reply.raw.writeHead(HTTP_STATUS.OK, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           Connection: 'keep-alive',
         });
 
-        // Create SSE transport
+        // 创建 SSE 传输
         const transport = new SSEServerTransport('/messages', reply.raw);
         this.transportsMap.set(transport.sessionId, transport);
 
@@ -105,7 +104,7 @@ export class Server {
         const server = getMcpServer();
         await server.connect(transport);
 
-        // Keep connection open
+        // 保持连接开放
         reply.raw.write(':\n\n');
       } catch (error) {
         if (!reply.sent) {
@@ -114,7 +113,7 @@ export class Server {
       }
     });
 
-    // Compatible with SSE
+    // 兼容 SSE
     this.fastify.post('/messages', async (req, reply) => {
       try {
         const { sessionId } = req.query as any;
@@ -132,20 +131,20 @@ export class Server {
       }
     });
 
-    // POST /mcp: Handle client-to-server messages
+    // POST /mcp: 处理客户端到服务器的消息
     this.fastify.post('/mcp', async (request, reply) => {
       const sessionId = request.headers['mcp-session-id'] as string | undefined;
       let transport: StreamableHTTPServerTransport | undefined = this.transportsMap.get(
         sessionId || '',
       ) as StreamableHTTPServerTransport;
       if (transport) {
-        // transport found, do nothing
+        // 找到传输，不做任何操作
       } else if (!sessionId && isInitializeRequest(request.body)) {
-        const newSessionId = randomUUID(); // Generate session ID
+        const newSessionId = randomUUID(); // 生成会话 ID
         transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: () => newSessionId, // Use pre-generated ID
+          sessionIdGenerator: () => newSessionId, // 使用预生成的 ID
           onsessioninitialized: (initializedSessionId) => {
-            // Ensure transport instance exists and session ID matches
+            // 确保传输实例存在且会话 ID 匹配
             if (transport && initializedSessionId === newSessionId) {
               this.transportsMap.set(initializedSessionId, transport);
             }
@@ -187,14 +186,14 @@ export class Server {
       reply.raw.setHeader('Content-Type', 'text/event-stream');
       reply.raw.setHeader('Cache-Control', 'no-cache');
       reply.raw.setHeader('Connection', 'keep-alive');
-      reply.raw.flushHeaders(); // Ensure headers are sent immediately
+      reply.raw.flushHeaders(); // 确保立即发送头
 
       try {
-        // transport.handleRequest will take over the response stream
+        // transport.handleRequest 将接管响应流
         await transport.handleRequest(request.raw, reply.raw);
         if (!reply.sent) {
-          // If transport didn't send anything (unlikely for SSE initial handshake)
-          reply.hijack(); // Prevent Fastify from automatically sending response
+          // 如果传输没有发送任何内容（SSE 初始握手不太可能）
+          reply.hijack(); // 防止 Fastify 自动发送响应
         }
       } catch (error) {
         if (!reply.raw.writableEnded) {
@@ -204,7 +203,7 @@ export class Server {
 
       request.socket.on('close', () => {
         request.log.info(`SSE client disconnected for session: ${sessionId}`);
-        // transport's onclose should handle its own cleanup
+        // transport 的 onclose 应该处理自己的清理
       });
     });
 
@@ -221,7 +220,7 @@ export class Server {
 
       try {
         await transport.handleRequest(request.raw, reply.raw);
-        // Assume transport.handleRequest will send response or transport.onclose will cleanup
+        // 假设 transport.handleRequest 将发送响应或 transport.onclose 将清理
         if (!reply.sent) {
           reply.code(HTTP_STATUS.NO_CONTENT).send();
         }
@@ -237,9 +236,9 @@ export class Server {
 
   public async start(port = NATIVE_SERVER_PORT, nativeHost: NativeMessagingHost): Promise<void> {
     if (!this.nativeHost) {
-      this.nativeHost = nativeHost; // Ensure nativeHost is set
+      this.nativeHost = nativeHost; // 确保设置 nativeHost
     } else if (this.nativeHost !== nativeHost) {
-      this.nativeHost = nativeHost; // Update to the passed instance
+      this.nativeHost = nativeHost; // 更新为传入的实例
     }
 
     if (this.isRunning) {
@@ -248,13 +247,13 @@ export class Server {
 
     try {
       await this.fastify.listen({ port, host: SERVER_CONFIG.HOST });
-      this.isRunning = true; // Update running status
-      // No need to return, Promise resolves void by default
+      this.isRunning = true; // 更新运行状态
+      // 无需返回，Promise 默认解析为 void
     } catch (err) {
-      this.isRunning = false; // Startup failed, reset status
-      // Throw error instead of exiting directly, let caller (possibly NativeHost) handle
-      throw err; // or return Promise.reject(err);
-      // process.exit(1); // Not recommended to exit directly here
+      this.isRunning = false; // 启动失败，重置状态
+      // 抛出错误而不是直接退出，让调用者（可能是 NativeHost）处理
+      throw err; // 或 return Promise.reject(err);
+      // process.exit(1); // 不建议在这里直接退出
     }
   }
 
@@ -262,14 +261,14 @@ export class Server {
     if (!this.isRunning) {
       return;
     }
-    // this.nativeHost = null; // Not recommended to nullify here, association relationship may still be needed
+    // this.nativeHost = null; // 不建议在这里置空，关联关系可能仍然需要
     try {
       await this.fastify.close();
-      this.isRunning = false; // Update running status
+      this.isRunning = false; // 更新运行状态
     } catch (err) {
-      // Even if closing fails, mark as not running, but log the error
+      // 即使关闭失败，也标记为未运行，但记录错误
       this.isRunning = false;
-      throw err; // Throw error
+      throw err; // 抛出错误
     }
   }
 

@@ -3,18 +3,18 @@ import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from 'chrome-mcp-shared';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 
-const DEFAULT_NETWORK_REQUEST_TIMEOUT = 30000; // For sending a single request via content script
+const DEFAULT_NETWORK_REQUEST_TIMEOUT = 30000; // 通过内容脚本发送单个请求的超时时间
 
 interface NetworkRequestToolParams {
-  url: string; // URL is always required
-  method?: string; // Defaults to GET
-  headers?: Record<string, string>; // User-provided headers
-  body?: any; // User-provided body
-  timeout?: number; // Timeout for the network request itself
+  url: string; // URL始终是必需的
+  method?: string; // 默认为GET
+  headers?: Record<string, string>; // 用户提供的头部
+  body?: any; // 用户提供的主体
+  timeout?: number; // 网络请求本身的超时时间
 }
 
 /**
- * NetworkRequestTool - Sends network requests based on provided parameters.
+ * 网络请求工具 - 根据提供的参数发送网络请求
  */
 class NetworkRequestTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.NETWORK_REQUEST;
@@ -28,24 +28,24 @@ class NetworkRequestTool extends BaseBrowserToolExecutor {
       timeout = DEFAULT_NETWORK_REQUEST_TIMEOUT,
     } = args;
 
-    console.log(`NetworkRequestTool: Executing with options:`, args);
+    console.log(`网络请求工具: 使用选项执行:`, args);
 
     if (!url) {
-      return createErrorResponse('URL parameter is required.');
+      return createErrorResponse('URL参数是必需的。');
     }
 
     try {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tabs[0]?.id) {
-        return createErrorResponse('No active tab found or tab has no ID.');
+        return createErrorResponse('未找到活动标签页或标签页没有ID。');
       }
       const activeTabId = tabs[0].id;
 
-      // Ensure content script is available in the target tab
+      // 确保内容脚本在目标标签页中可用
       await this.injectContentScript(activeTabId, ['inject-scripts/network-helper.js']);
 
       console.log(
-        `NetworkRequestTool: Sending to content script: URL=${url}, Method=${method}, Headers=${Object.keys(headers).join(',')}, BodyType=${typeof body}`,
+        `网络请求工具: 发送到内容脚本: URL=${url}, Method=${method}, Headers=${Object.keys(headers).join(',')}, BodyType=${typeof body}`,
       );
 
       const resultFromContentScript = await this.sendMessageToTab(activeTabId, {
@@ -57,7 +57,7 @@ class NetworkRequestTool extends BaseBrowserToolExecutor {
         timeout: timeout,
       });
 
-      console.log(`NetworkRequestTool: Response from content script:`, resultFromContentScript);
+      console.log(`网络请求工具: 来自内容脚本的响应:`, resultFromContentScript);
 
       return {
         content: [
@@ -69,10 +69,8 @@ class NetworkRequestTool extends BaseBrowserToolExecutor {
         isError: !resultFromContentScript?.success,
       };
     } catch (error: any) {
-      console.error('NetworkRequestTool: Error sending network request:', error);
-      return createErrorResponse(
-        `Error sending network request: ${error.message || String(error)}`,
-      );
+      console.error('网络请求工具: 发送网络请求时出错:', error);
+      return createErrorResponse(`发送网络请求时出错: ${error.message || String(error)}`);
     }
   }
 }

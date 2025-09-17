@@ -4,26 +4,26 @@ import { TOOL_NAMES } from 'chrome-mcp-shared';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 
 interface WebFetcherToolParams {
-  htmlContent?: boolean; // get the visible HTML content of the current page. default: false
-  textContent?: boolean; // get the visible text content of the current page. default: true
-  url?: string; // optional URL to fetch content from (if not provided, uses active tab)
-  selector?: string; // optional CSS selector to get content from a specific element
+  htmlContent?: boolean; // 获取当前页面的可见HTML内容。默认: false
+  textContent?: boolean; // 获取当前页面的可见文本内容。默认: true
+  url?: string; // 可选的URL来获取内容（如果未提供，使用活动标签页）
+  selector?: string; // 可选的CSS选择器来从特定元素获取内容
 }
 
 class WebFetcherTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.WEB_FETCHER;
 
   /**
-   * Execute web fetcher operation
+   * 执行网页获取器操作
    */
   async execute(args: WebFetcherToolParams): Promise<ToolResult> {
-    // Handle mutually exclusive parameters: if htmlContent is true, textContent is forced to false
+    // 处理互斥参数：如果htmlContent为true，textContent强制为false
     const htmlContent = args.htmlContent === true;
-    const textContent = htmlContent ? false : args.textContent !== false; // Default is true, unless htmlContent is true or textContent is explicitly set to false
+    const textContent = htmlContent ? false : args.textContent !== false; // 默认为true，除非htmlContent为true或textContent明确设置为false
     const url = args.url;
     const selector = args.selector;
 
-    console.log(`Starting web fetcher with options:`, {
+    console.log(`使用选项启动网页获取器:`, {
       htmlContent,
       textContent,
       url,
@@ -31,52 +31,52 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
     });
 
     try {
-      // Get tab to fetch content from
+      // 获取要获取内容的标签页
       let tab;
 
       if (url) {
-        // If URL is provided, check if it's already open
-        console.log(`Checking if URL is already open: ${url}`);
+        // 如果提供了URL，检查它是否已经打开
+        console.log(`检查URL是否已经打开: ${url}`);
         const allTabs = await chrome.tabs.query({});
 
-        // Find tab with matching URL
+        // 查找匹配URL的标签页
         const matchingTabs = allTabs.filter((t) => {
-          // Normalize URLs for comparison (remove trailing slashes)
+          // 规范化URL以进行比较（移除尾随斜杠）
           const tabUrl = t.url?.endsWith('/') ? t.url.slice(0, -1) : t.url;
           const targetUrl = url.endsWith('/') ? url.slice(0, -1) : url;
           return tabUrl === targetUrl;
         });
 
         if (matchingTabs.length > 0) {
-          // Use existing tab
+          // 使用现有标签页
           tab = matchingTabs[0];
-          console.log(`Found existing tab with URL: ${url}, tab ID: ${tab.id}`);
+          console.log(`找到现有标签页，URL: ${url}，标签页ID: ${tab.id}`);
         } else {
-          // Create new tab with the URL
-          console.log(`No existing tab found with URL: ${url}, creating new tab`);
+          // 使用URL创建新标签页
+          console.log(`未找到URL的现有标签页: ${url}，创建新标签页`);
           tab = await chrome.tabs.create({ url, active: true });
 
-          // Wait for page to load
-          console.log('Waiting for page to load...');
+          // 等待页面加载
+          console.log('等待页面加载...');
           await new Promise((resolve) => setTimeout(resolve, 3000));
         }
       } else {
-        // Use active tab
+        // 使用活动标签页
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tabs[0]) {
-          return createErrorResponse('No active tab found');
+          return createErrorResponse('未找到活动标签页');
         }
         tab = tabs[0];
       }
 
       if (!tab.id) {
-        return createErrorResponse('Tab has no ID');
+        return createErrorResponse('标签页没有ID');
       }
 
-      // Make sure tab is active
+      // 确保标签页是活动的
       await chrome.tabs.update(tab.id, { active: true });
 
-      // Prepare result object
+      // 准备结果对象
       const result: any = {
         success: true,
         url: tab.url,
@@ -85,7 +85,7 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
 
       await this.injectContentScript(tab.id, ['inject-scripts/web-fetcher-helper.js']);
 
-      // Get HTML content if requested
+      // 如果请求获取HTML内容
       if (htmlContent) {
         const htmlResponse = await this.sendMessageToTab(tab.id, {
           action: TOOL_MESSAGE_TYPES.WEB_FETCHER_GET_HTML_CONTENT,
@@ -95,12 +95,12 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
         if (htmlResponse.success) {
           result.htmlContent = htmlResponse.htmlContent;
         } else {
-          console.error('Failed to get HTML content:', htmlResponse.error);
+          console.error('获取HTML内容失败:', htmlResponse.error);
           result.htmlContentError = htmlResponse.error;
         }
       }
 
-      // Get text content if requested (and htmlContent is not true)
+      // 如果请求获取文本内容（且htmlContent不为true）
       if (textContent) {
         const textResponse = await this.sendMessageToTab(tab.id, {
           action: TOOL_MESSAGE_TYPES.WEB_FETCHER_GET_TEXT_CONTENT,
@@ -110,7 +110,7 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
         if (textResponse.success) {
           result.textContent = textResponse.textContent;
 
-          // Include article metadata if available
+          // 如果可用，包含文章元数据
           if (textResponse.article) {
             result.article = {
               title: textResponse.article.title,
@@ -121,17 +121,17 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
             };
           }
 
-          // Include page metadata if available
+          // 如果可用，包含页面元数据
           if (textResponse.metadata) {
             result.metadata = textResponse.metadata;
           }
         } else {
-          console.error('Failed to get text content:', textResponse.error);
+          console.error('获取文本内容失败:', textResponse.error);
           result.textContentError = textResponse.error;
         }
       }
 
-      // Interactive elements feature has been removed
+      // 交互元素功能已被移除
 
       return {
         content: [
@@ -143,9 +143,9 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error in web fetcher:', error);
+      console.error('网页获取器中出错:', error);
       return createErrorResponse(
-        `Error fetching web content: ${error instanceof Error ? error.message : String(error)}`,
+        `获取网页内容时出错: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -154,39 +154,39 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
 export const webFetcherTool = new WebFetcherTool();
 
 interface GetInteractiveElementsToolParams {
-  textQuery?: string; // Text to search for within interactive elements (fuzzy search)
-  selector?: string; // CSS selector to filter interactive elements
-  includeCoordinates?: boolean; // Include element coordinates in the response (default: true)
-  types?: string[]; // Types of interactive elements to include (default: all types)
+  textQuery?: string; // 在交互元素中搜索的文本（模糊搜索）
+  selector?: string; // 用于过滤交互元素的CSS选择器
+  includeCoordinates?: boolean; // 在响应中包含元素坐标（默认: true）
+  types?: string[]; // 要包含的交互元素类型（默认: 所有类型）
 }
 
 class GetInteractiveElementsTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.GET_INTERACTIVE_ELEMENTS;
 
   /**
-   * Execute get interactive elements operation
+   * 执行获取交互元素操作
    */
   async execute(args: GetInteractiveElementsToolParams): Promise<ToolResult> {
     const { textQuery, selector, includeCoordinates = true, types } = args;
 
-    console.log(`Starting get interactive elements with options:`, args);
+    console.log(`使用选项启动获取交互元素:`, args);
 
     try {
-      // Get current tab
+      // 获取当前标签页
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tabs[0]) {
-        return createErrorResponse('No active tab found');
+        return createErrorResponse('未找到活动标签页');
       }
 
       const tab = tabs[0];
       if (!tab.id) {
-        return createErrorResponse('Active tab has no ID');
+        return createErrorResponse('活动标签页没有ID');
       }
 
-      // Ensure content script is injected
+      // 确保内容脚本被注入
       await this.injectContentScript(tab.id, ['inject-scripts/interactive-elements-helper.js']);
 
-      // Send message to content script
+      // 发送消息到内容脚本
       const result = await this.sendMessageToTab(tab.id, {
         action: TOOL_MESSAGE_TYPES.GET_INTERACTIVE_ELEMENTS,
         textQuery,
@@ -196,7 +196,7 @@ class GetInteractiveElementsTool extends BaseBrowserToolExecutor {
       });
 
       if (!result.success) {
-        return createErrorResponse(result.error || 'Failed to get interactive elements');
+        return createErrorResponse(result.error || '获取交互元素失败');
       }
 
       return {
@@ -210,7 +210,7 @@ class GetInteractiveElementsTool extends BaseBrowserToolExecutor {
               query: {
                 textQuery,
                 selector,
-                types: types || 'all',
+                types: types || '所有',
               },
             }),
           },
@@ -218,9 +218,9 @@ class GetInteractiveElementsTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error in get interactive elements operation:', error);
+      console.error('获取交互元素操作中出错:', error);
       return createErrorResponse(
-        `Error getting interactive elements: ${error instanceof Error ? error.message : String(error)}`,
+        `获取交互元素时出错: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

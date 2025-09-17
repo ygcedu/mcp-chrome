@@ -10,20 +10,20 @@ interface Coordinates {
 }
 
 interface ClickToolParams {
-  selector?: string; // CSS selector for the element to click
-  coordinates?: Coordinates; // Coordinates to click at (x, y relative to viewport)
-  waitForNavigation?: boolean; // Whether to wait for navigation to complete after click
-  timeout?: number; // Timeout in milliseconds for waiting for the element or navigation
+  selector?: string; // 要点击元素的 CSS 选择器
+  coordinates?: Coordinates; // 要点击的坐标（相对于视口的 x, y）
+  waitForNavigation?: boolean; // 是否等待点击后导航完成
+  timeout?: number; // 等待元素或导航的超时时间（毫秒）
 }
 
 /**
- * Tool for clicking elements on web pages
+ * 用于点击网页元素的工具
  */
 class ClickTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.CLICK;
 
   /**
-   * Execute click operation
+   * 执行点击操作
    */
   async execute(args: ClickToolParams): Promise<ToolResult> {
     const {
@@ -33,16 +33,14 @@ class ClickTool extends BaseBrowserToolExecutor {
       timeout = TIMEOUTS.DEFAULT_WAIT * 5,
     } = args;
 
-    console.log(`Starting click operation with options:`, args);
+    console.log(`开始点击操作，选项:`, args);
 
     if (!selector && !coordinates) {
-      return createErrorResponse(
-        ERROR_MESSAGES.INVALID_PARAMETERS + ': Either selector or coordinates must be provided',
-      );
+      return createErrorResponse(ERROR_MESSAGES.INVALID_PARAMETERS + ': 必须提供选择器或坐标');
     }
 
     try {
-      // Get current tab
+      // 获取当前标签页
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tabs[0]) {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
@@ -50,12 +48,12 @@ class ClickTool extends BaseBrowserToolExecutor {
 
       const tab = tabs[0];
       if (!tab.id) {
-        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
+        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': 活动标签页没有 ID');
       }
 
       await this.injectContentScript(tab.id, ['inject-scripts/click-helper.js']);
 
-      // Send click message to content script
+      // 向内容脚本发送点击消息
       const result = await this.sendMessageToTab(tab.id, {
         action: TOOL_MESSAGE_TYPES.CLICK_ELEMENT,
         selector,
@@ -70,7 +68,7 @@ class ClickTool extends BaseBrowserToolExecutor {
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: result.message || 'Click operation successful',
+              message: result.message || '点击操作成功',
               elementInfo: result.elementInfo,
               navigationOccurred: result.navigationOccurred,
               clickMethod: coordinates ? 'coordinates' : 'selector',
@@ -80,9 +78,9 @@ class ClickTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error in click operation:', error);
+      console.error('点击操作中出错:', error);
       return createErrorResponse(
-        `Error performing click: ${error instanceof Error ? error.message : String(error)}`,
+        `执行点击时出错: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -96,29 +94,29 @@ interface FillToolParams {
 }
 
 /**
- * Tool for filling form elements on web pages
+ * 用于填充网页表单元素的工具
  */
 class FillTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.FILL;
 
   /**
-   * Execute fill operation
+   * 执行填充操作
    */
   async execute(args: FillToolParams): Promise<ToolResult> {
     const { selector, value } = args;
 
-    console.log(`Starting fill operation with options:`, args);
+    console.log(`开始填充操作，选项:`, args);
 
     if (!selector) {
-      return createErrorResponse(ERROR_MESSAGES.INVALID_PARAMETERS + ': Selector must be provided');
+      return createErrorResponse(ERROR_MESSAGES.INVALID_PARAMETERS + ': 必须提供选择器');
     }
 
     if (value === undefined || value === null) {
-      return createErrorResponse(ERROR_MESSAGES.INVALID_PARAMETERS + ': Value must be provided');
+      return createErrorResponse(ERROR_MESSAGES.INVALID_PARAMETERS + ': 必须提供值');
     }
 
     try {
-      // Get current tab
+      // 获取当前标签页
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tabs[0]) {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
@@ -126,12 +124,12 @@ class FillTool extends BaseBrowserToolExecutor {
 
       const tab = tabs[0];
       if (!tab.id) {
-        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
+        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': 活动标签页没有 ID');
       }
 
       await this.injectContentScript(tab.id, ['inject-scripts/fill-helper.js']);
 
-      // Send fill message to content script
+      // 向内容脚本发送填充消息
       const result = await this.sendMessageToTab(tab.id, {
         action: TOOL_MESSAGE_TYPES.FILL_ELEMENT,
         selector,
@@ -148,7 +146,7 @@ class FillTool extends BaseBrowserToolExecutor {
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: result.message || 'Fill operation successful',
+              message: result.message || '填充操作成功',
               elementInfo: result.elementInfo,
             }),
           },
@@ -156,9 +154,9 @@ class FillTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error in fill operation:', error);
+      console.error('填充操作中出错:', error);
       return createErrorResponse(
-        `Error filling element: ${error instanceof Error ? error.message : String(error)}`,
+        `填充元素时出错: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

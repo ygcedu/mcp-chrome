@@ -48,7 +48,7 @@ interface ConsoleResult {
 }
 
 /**
- * Tool for capturing console output from browser tabs
+ * 用于捕获浏览器标签页控制台输出的工具
  */
 class ConsoleTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.CONSOLE;
@@ -60,24 +60,24 @@ class ConsoleTool extends BaseBrowserToolExecutor {
 
     try {
       if (url) {
-        // Navigate to the specified URL
+        // 导航到指定的 URL
         targetTab = await this.navigateToUrl(url);
       } else {
-        // Use current active tab
+        // 使用当前活动标签页
         const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!activeTab?.id) {
-          return createErrorResponse('No active tab found and no URL provided.');
+          return createErrorResponse('未找到活动标签页且未提供 URL。');
         }
         targetTab = activeTab;
       }
 
       if (!targetTab?.id) {
-        return createErrorResponse('Failed to identify target tab.');
+        return createErrorResponse('无法识别目标标签页。');
       }
 
       const tabId = targetTab.id;
 
-      // Capture console messages (one-time capture)
+      // 捕获控制台消息（一次性捕获）
       const result = await this.captureConsoleMessages(tabId, {
         includeExceptions,
         maxMessages,
@@ -93,25 +93,25 @@ class ConsoleTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error: any) {
-      console.error('ConsoleTool: Critical error during execute:', error);
-      return createErrorResponse(`Error in ConsoleTool: ${error.message || String(error)}`);
+      console.error('ConsoleTool: 执行期间发生严重错误:', error);
+      return createErrorResponse(`ConsoleTool 中出错: ${error.message || String(error)}`);
     }
   }
 
   private async navigateToUrl(url: string): Promise<chrome.tabs.Tab> {
-    // Check if URL is already open
+    // 检查 URL 是否已打开
     const existingTabs = await chrome.tabs.query({ url });
 
     if (existingTabs.length > 0 && existingTabs[0]?.id) {
       const tab = existingTabs[0];
-      // Activate the existing tab
+      // 激活现有标签页
       await chrome.tabs.update(tab.id!, { active: true });
       await chrome.windows.update(tab.windowId, { focused: true });
       return tab;
     } else {
-      // Create new tab with the URL
+      // 使用 URL 创建新标签页
       const newTab = await chrome.tabs.create({ url, active: true });
-      // Wait for tab to be ready
+      // 等待标签页准备就绪
       await this.waitForTabReady(newTab.id!);
       return newTab;
     }
@@ -128,7 +128,7 @@ class ConsoleTool extends BaseBrowserToolExecutor {
             setTimeout(checkTab, 100);
           }
         } catch (error) {
-          // Tab might be closed, resolve anyway
+          // 标签页可能已关闭，仍然解决
           resolve();
         }
       };
@@ -174,33 +174,29 @@ class ConsoleTool extends BaseBrowserToolExecutor {
     let limitReached = false;
 
     try {
-      // Get tab information
+      // 获取标签页信息
       const tab = await chrome.tabs.get(tabId);
 
-      // Check if debugger is already attached
+      // 检查调试器是否已附加
       const targets = await chrome.debugger.getTargets();
       const existingTarget = targets.find(
         (t) => t.tabId === tabId && t.attached && t.type === 'page',
       );
       if (existingTarget && !existingTarget.extensionId) {
-        throw new Error(
-          `Debugger is already attached to tab ${tabId} by another tool (e.g., DevTools).`,
-        );
+        throw new Error(`调试器已被其他工具（例如 DevTools）附加到标签页 ${tabId}。`);
       }
 
-      // Attach debugger
+      // 附加调试器
       try {
         await chrome.debugger.attach({ tabId }, DEBUGGER_PROTOCOL_VERSION);
       } catch (error: any) {
         if (error.message?.includes('Cannot attach to the target with an attached client')) {
-          throw new Error(
-            `Debugger is already attached to tab ${tabId}. This might be DevTools or another extension.`,
-          );
+          throw new Error(`调试器已附加到标签页 ${tabId}。这可能是 DevTools 或其他扩展。`);
         }
         throw error;
       }
 
-      // Set up event listener to collect messages
+      // 设置事件监听器收集消息
       const collectedMessages: any[] = [];
       const collectedExceptions: any[] = [];
 
@@ -210,7 +206,7 @@ class ConsoleTool extends BaseBrowserToolExecutor {
         if (method === 'Log.entryAdded' && params?.entry) {
           collectedMessages.push(params.entry);
         } else if (method === 'Runtime.consoleAPICalled' && params) {
-          // Convert Runtime.consoleAPICalled to Log.entryAdded format
+          // 将 Runtime.consoleAPICalled 转换为 Log.entryAdded 格式
           const logEntry = {
             timestamp: params.timestamp,
             level: params.type || 'log',
@@ -234,16 +230,16 @@ class ConsoleTool extends BaseBrowserToolExecutor {
       chrome.debugger.onEvent.addListener(eventListener);
 
       try {
-        // Enable Runtime domain first to capture console API calls and exceptions
+        // 首先启用 Runtime 域以捕获控制台 API 调用和异常
         await chrome.debugger.sendCommand({ tabId }, 'Runtime.enable');
 
-        // Also enable Log domain to capture other log entries
+        // 同时启用 Log 域以捕获其他日志条目
         await chrome.debugger.sendCommand({ tabId }, 'Log.enable');
 
-        // Wait for all messages to be flushed
+        // 等待所有消息被刷新
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        // Process collected messages
+        // 处理收集的消息
         for (const entry of collectedMessages) {
           if (messages.length >= maxMessages) {
             limitReached = true;
@@ -270,7 +266,7 @@ class ConsoleTool extends BaseBrowserToolExecutor {
           messages.push(message);
         }
 
-        // Process collected exceptions
+        // 处理收集的异常
         for (const exceptionDetails of collectedExceptions) {
           const exception: ConsoleException = {
             timestamp: Date.now(),
@@ -290,37 +286,37 @@ class ConsoleTool extends BaseBrowserToolExecutor {
           exceptions.push(exception);
         }
       } finally {
-        // Clean up
+        // 清理
         chrome.debugger.onEvent.removeListener(eventListener);
 
         try {
           await chrome.debugger.sendCommand({ tabId }, 'Runtime.disable');
         } catch (e) {
-          console.warn(`ConsoleTool: Error disabling Runtime for tab ${tabId}:`, e);
+          console.warn(`ConsoleTool: 禁用标签页 ${tabId} 的 Runtime 时出错:`, e);
         }
 
         try {
           await chrome.debugger.sendCommand({ tabId }, 'Log.disable');
         } catch (e) {
-          console.warn(`ConsoleTool: Error disabling Log for tab ${tabId}:`, e);
+          console.warn(`ConsoleTool: 禁用标签页 ${tabId} 的 Log 时出错:`, e);
         }
 
         try {
           await chrome.debugger.detach({ tabId });
         } catch (e) {
-          console.warn(`ConsoleTool: Error detaching debugger for tab ${tabId}:`, e);
+          console.warn(`ConsoleTool: 分离标签页 ${tabId} 的调试器时出错:`, e);
         }
       }
 
       const endTime = Date.now();
 
-      // Sort messages by timestamp
+      // 按时间戳排序消息
       messages.sort((a, b) => a.timestamp - b.timestamp);
       exceptions.sort((a, b) => a.timestamp - b.timestamp);
 
       return {
         success: true,
-        message: `Console capture completed for tab ${tabId}. ${messages.length} messages, ${exceptions.length} exceptions captured.`,
+        message: `标签页 ${tabId} 的控制台捕获完成。捕获了 ${messages.length} 条消息和 ${exceptions.length} 个异常。`,
         tabId,
         tabUrl: tab.url || '',
         tabTitle: tab.title || '',
@@ -334,7 +330,7 @@ class ConsoleTool extends BaseBrowserToolExecutor {
         messageLimitReached: limitReached,
       };
     } catch (error: any) {
-      console.error(`ConsoleTool: Error capturing console messages for tab ${tabId}:`, error);
+      console.error(`ConsoleTool: 捕获标签页 ${tabId} 的控制台消息时出错:`, error);
       throw error;
     }
   }

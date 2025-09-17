@@ -1,20 +1,20 @@
 /**
- * Chrome Extension Constants
- * Centralized configuration values and magic constants
+ * Chrome 扩展常量
+ * 集中配置值和魔法常量
  */
 
-// Native Host Configuration
+// 原生主机配置
 export const NATIVE_HOST = {
   NAME: 'com.chromemcp.nativehost',
   DEFAULT_PORT: 12306,
 } as const;
 
-// Chrome Extension Icons
+// Chrome 扩展图标
 export const ICONS = {
   NOTIFICATION: 'icon/48.png',
 } as const;
 
-// Timeouts and Delays (in milliseconds)
+// 超时和延迟（毫秒）
 export const TIMEOUTS = {
   DEFAULT_WAIT: 1000,
   NETWORK_CAPTURE_MAX: 30000,
@@ -24,7 +24,7 @@ export const TIMEOUTS = {
   CLICK_DELAY: 100,
 } as const;
 
-// Limits and Thresholds
+// 限制和阈值
 export const LIMITS = {
   MAX_NETWORK_REQUESTS: 100,
   MAX_SEARCH_RESULTS: 50,
@@ -34,29 +34,29 @@ export const LIMITS = {
   VECTOR_DIMENSIONS: 384,
 } as const;
 
-// Error Messages
+// 错误消息
 export const ERROR_MESSAGES = {
-  NATIVE_CONNECTION_FAILED: 'Failed to connect to native host',
-  NATIVE_DISCONNECTED: 'Native connection disconnected',
-  SERVER_STATUS_LOAD_FAILED: 'Failed to load server status',
-  SERVER_STATUS_SAVE_FAILED: 'Failed to save server status',
-  TOOL_EXECUTION_FAILED: 'Tool execution failed',
-  INVALID_PARAMETERS: 'Invalid parameters provided',
-  PERMISSION_DENIED: 'Permission denied',
-  TAB_NOT_FOUND: 'Tab not found',
-  ELEMENT_NOT_FOUND: 'Element not found',
-  NETWORK_ERROR: 'Network error occurred',
+  NATIVE_CONNECTION_FAILED: '连接原生主机失败',
+  NATIVE_DISCONNECTED: '原生连接已断开',
+  SERVER_STATUS_LOAD_FAILED: '加载服务器状态失败',
+  SERVER_STATUS_SAVE_FAILED: '保存服务器状态失败',
+  TOOL_EXECUTION_FAILED: '工具执行失败',
+  INVALID_PARAMETERS: '提供的参数无效',
+  PERMISSION_DENIED: '权限被拒绝',
+  TAB_NOT_FOUND: '未找到标签页',
+  ELEMENT_NOT_FOUND: '未找到元素',
+  NETWORK_ERROR: '网络错误',
 } as const;
 
-// Success Messages
+// 成功消息
 export const SUCCESS_MESSAGES = {
-  TOOL_EXECUTED: 'Tool executed successfully',
-  CONNECTION_ESTABLISHED: 'Connection established',
-  SERVER_STARTED: 'Server started successfully',
-  SERVER_STOPPED: 'Server stopped successfully',
+  TOOL_EXECUTED: '工具执行成功',
+  CONNECTION_ESTABLISHED: '连接已建立',
+  SERVER_STARTED: '服务器启动成功',
+  SERVER_STOPPED: '服务器停止成功',
 } as const;
 
-// File Extensions and MIME Types
+// 文件扩展名和 MIME 类型
 export const FILE_TYPES = {
   STATIC_EXTENSIONS: [
     '.css',
@@ -75,7 +75,7 @@ export const FILE_TYPES = {
   IMAGE_FORMATS: ['png', 'jpeg', 'webp'] as const,
 } as const;
 
-// Network Filtering
+// 网络过滤
 export const NETWORK_FILTERS = {
   EXCLUDED_DOMAINS: [
     'google-analytics.com',
@@ -87,7 +87,7 @@ export const NETWORK_FILTERS = {
   STATIC_RESOURCE_TYPES: ['stylesheet', 'image', 'font', 'media', 'other'],
 } as const;
 
-// Semantic Similarity Configuration
+// 语义相似度配置
 export const SEMANTIC_CONFIG = {
   DEFAULT_MODEL: 'sentence-transformers/all-MiniLM-L6-v2',
   CHUNK_SIZE: 512,
@@ -96,7 +96,7 @@ export const SEMANTIC_CONFIG = {
   CACHE_SIZE: 1000,
 } as const;
 
-// Storage Keys
+// 存储键
 export const STORAGE_KEYS = {
   SERVER_STATUS: 'serverStatus',
   SEMANTIC_MODEL: 'selectedModel',
@@ -104,7 +104,7 @@ export const STORAGE_KEYS = {
   VECTOR_INDEX: 'vectorIndex',
 } as const;
 
-// Notification Configuration
+// 通知配置
 export const NOTIFICATIONS = {
   PRIORITY: 2,
   TYPE: 'basic' as const,

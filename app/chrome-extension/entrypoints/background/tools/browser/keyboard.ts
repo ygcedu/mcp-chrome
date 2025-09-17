@@ -5,33 +5,31 @@ import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
 
 interface KeyboardToolParams {
-  keys: string; // Required: string representing keys or key combinations to simulate (e.g., "Enter", "Ctrl+C")
-  selector?: string; // Optional: CSS selector for target element to send keyboard events to
-  delay?: number; // Optional: delay between keystrokes in milliseconds
+  keys: string; // 必需：表示要模拟的键或组合键的字符串（例如，"Enter"、"Ctrl+C"）
+  selector?: string; // 可选：用于发送键盘事件的目标元素的 CSS 选择器
+  delay?: number; // 可选：键盘按键之间的延迟（毫秒）
 }
 
 /**
- * Tool for simulating keyboard input on web pages
+ * 用于在网页上模拟键盘输入的工具
  */
 class KeyboardTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.KEYBOARD;
 
   /**
-   * Execute keyboard operation
+   * 执行键盘操作
    */
   async execute(args: KeyboardToolParams): Promise<ToolResult> {
     const { keys, selector, delay = TIMEOUTS.KEYBOARD_DELAY } = args;
 
-    console.log(`Starting keyboard operation with options:`, args);
+    console.log(`开始键盘操作，选项:`, args);
 
     if (!keys) {
-      return createErrorResponse(
-        ERROR_MESSAGES.INVALID_PARAMETERS + ': Keys parameter must be provided',
-      );
+      return createErrorResponse(ERROR_MESSAGES.INVALID_PARAMETERS + ': 必须提供键参数');
     }
 
     try {
-      // Get current tab
+      // 获取当前标签页
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tabs[0]) {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
@@ -39,12 +37,12 @@ class KeyboardTool extends BaseBrowserToolExecutor {
 
       const tab = tabs[0];
       if (!tab.id) {
-        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
+        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': 活动标签页没有 ID');
       }
 
       await this.injectContentScript(tab.id, ['inject-scripts/keyboard-helper.js']);
 
-      // Send keyboard simulation message to content script
+      // 向内容脚本发送键盘模拟消息
       const result = await this.sendMessageToTab(tab.id, {
         action: TOOL_MESSAGE_TYPES.SIMULATE_KEYBOARD,
         keys,
@@ -62,7 +60,7 @@ class KeyboardTool extends BaseBrowserToolExecutor {
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: result.message || 'Keyboard operation successful',
+              message: result.message || '键盘操作成功',
               targetElement: result.targetElement,
               results: result.results,
             }),
@@ -71,9 +69,9 @@ class KeyboardTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error in keyboard operation:', error);
+      console.error('键盘操作中出错:', error);
       return createErrorResponse(
-        `Error simulating keyboard events: ${error instanceof Error ? error.message : String(error)}`,
+        `模拟键盘事件时出错: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

@@ -5,7 +5,7 @@ import { STORAGE_KEYS, ERROR_MESSAGES } from '@/common/constants';
 import { hasAnyModelCache } from '@/utils/semantic-similarity-engine';
 
 /**
- * Model configuration state management interface
+ * 模型配置状态管理接口
  */
 interface ModelConfig {
   modelPreset: ModelPreset;
@@ -16,36 +16,36 @@ interface ModelConfig {
 let currentBackgroundModelConfig: ModelConfig | null = null;
 
 /**
- * Initialize semantic engine only if model cache exists
- * This is called during plugin startup to avoid downloading models unnecessarily
+ * 仅在模型缓存存在时初始化语义引擎
+ * 这在插件启动时调用，以避免不必要的模型下载
  */
 export async function initializeSemanticEngineIfCached(): Promise<boolean> {
   try {
-    console.log('Background: Checking if semantic engine should be initialized from cache...');
+    console.log('后台：检查是否应从缓存初始化语义引擎...');
 
     const hasCachedModel = await hasAnyModelCache();
     if (!hasCachedModel) {
-      console.log('Background: No cached models found, skipping semantic engine initialization');
+      console.log('后台：未找到缓存模型，跳过语义引擎初始化');
       return false;
     }
 
-    console.log('Background: Found cached models, initializing semantic engine...');
+    console.log('后台：找到缓存模型，初始化语义引擎...');
     await initializeDefaultSemanticEngine();
     return true;
   } catch (error) {
-    console.error('Background: Error during conditional semantic engine initialization:', error);
+    console.error('后台：有条件语义引擎初始化过程中出错：', error);
     return false;
   }
 }
 
 /**
- * Initialize default semantic engine model
+ * 初始化默认语义引擎模型
  */
 export async function initializeDefaultSemanticEngine(): Promise<void> {
   try {
-    console.log('Background: Initializing default semantic engine...');
+    console.log('后台：初始化默认语义引擎...');
 
-    // Update status to initializing
+    // 更新状态为初始化中
     await updateModelStatus('initializing', 0);
 
     const result = await chrome.storage.local.get([STORAGE_KEYS.SEMANTIC_MODEL, 'selectedVersion']);
@@ -77,22 +77,19 @@ export async function initializeDefaultSemanticEngine(): Promise<void> {
         modelVersion: defaultVersion,
         modelDimension: modelInfo.dimension,
       };
-      console.log('Semantic engine initialized successfully:', currentBackgroundModelConfig);
+      console.log('语义引擎初始化成功：', currentBackgroundModelConfig);
 
-      // Update status to ready
+      // 更新状态为就绪
       await updateModelStatus('ready', 100);
 
-      // Also initialize ContentIndexer now that semantic engine is ready
+      // 现在语义引擎已就绪，也初始化 ContentIndexer
       try {
         const { getGlobalContentIndexer } = await import('@/utils/content-indexer');
         const contentIndexer = getGlobalContentIndexer();
         contentIndexer.startSemanticEngineInitialization();
-        console.log('ContentIndexer initialization triggered after semantic engine initialization');
+        console.log('语义引擎初始化后触发 ContentIndexer 初始化');
       } catch (indexerError) {
-        console.warn(
-          'Failed to initialize ContentIndexer after semantic engine initialization:',
-          indexerError,
-        );
+        console.warn('语义引擎初始化后初始化 ContentIndexer 失败：', indexerError);
       }
     } else {
       const errorMessage = response?.error || ERROR_MESSAGES.TOOL_EXECUTION_FAILED;
@@ -100,15 +97,15 @@ export async function initializeDefaultSemanticEngine(): Promise<void> {
       throw new Error(errorMessage);
     }
   } catch (error: any) {
-    console.error('Background: Failed to initialize default semantic engine:', error);
+    console.error('后台：初始化默认语义引擎失败：', error);
     const errorMessage = error?.message || 'Unknown error during semantic engine initialization';
     await updateModelStatus('error', 0, errorMessage, 'unknown');
-    // Don't throw error, let the extension continue running
+    // 不抛出错误，让扩展继续运行
   }
 }
 
 /**
- * Check if model switch is needed
+ * 检查是否需要模型切换
  */
 function needsModelSwitch(
   modelPreset: ModelPreset,
@@ -136,7 +133,7 @@ function needsModelSwitch(
 }
 
 /**
- * Handle model switching
+ * 处理模型切换
  */
 export async function handleModelSwitch(
   modelPreset: ModelPreset,
@@ -156,7 +153,7 @@ export async function handleModelSwitch(
     try {
       await OffscreenManager.getInstance().ensureOffscreenDocument();
     } catch (offscreenError) {
-      console.error('Background: Failed to create offscreen document:', offscreenError);
+      console.error('后台：创建离屏文档失败：', offscreenError);
       const errorMessage = `Failed to create offscreen document: ${offscreenError}`;
       await updateModelStatus('error', 0, errorMessage, 'unknown');
       return { success: false, error: errorMessage };
@@ -181,7 +178,7 @@ export async function handleModelSwitch(
         modelDimension: modelDimension!,
       };
 
-      // Only reinitialize ContentIndexer when dimension changes
+      // 仅在维度变化时重新初始化 ContentIndexer
       try {
         if (modelDimension && previousDimension && modelDimension !== previousDimension) {
           const { getGlobalContentIndexer } = await import('@/utils/content-indexer');
@@ -189,7 +186,7 @@ export async function handleModelSwitch(
           await contentIndexer.reinitialize();
         }
       } catch (indexerError) {
-        console.warn('Background: Failed to reinitialize ContentIndexer:', indexerError);
+        console.warn('后台：重新初始化 ContentIndexer 失败：', indexerError);
       }
 
       await updateModelStatus('ready', 100);
@@ -201,7 +198,7 @@ export async function handleModelSwitch(
       throw new Error(errorMessage);
     }
   } catch (error: any) {
-    console.error('Model switch failed:', error);
+    console.error('模型切换失败：', error);
     const errorMessage = error.message || 'Unknown error';
     const errorType = analyzeErrorType(errorMessage);
     await updateModelStatus('error', 0, errorMessage, errorType);
@@ -210,7 +207,7 @@ export async function handleModelSwitch(
 }
 
 /**
- * Get model status
+ * 获取模型状态
  */
 export async function handleGetModelStatus(): Promise<{
   success: boolean;
@@ -219,7 +216,7 @@ export async function handleGetModelStatus(): Promise<{
 }> {
   try {
     if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
-      console.error('Background: chrome.storage.local is not available for status query');
+      console.error('后台：chrome.storage.local 不可用于状态查询');
       return {
         success: true,
         status: {
@@ -251,13 +248,13 @@ export async function handleGetModelStatus(): Promise<{
       },
     };
   } catch (error: any) {
-    console.error('Failed to get model status:', error);
+    console.error('获取模型状态失败：', error);
     return { success: false, error: error.message };
   }
 }
 
 /**
- * Update model status
+ * 更新模型状态
  */
 export async function updateModelStatus(
   status: string,
@@ -266,9 +263,9 @@ export async function updateModelStatus(
   errorType?: string,
 ): Promise<void> {
   try {
-    // Check if chrome.storage is available
+    // 检查 chrome.storage 是否可用
     if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
-      console.error('Background: chrome.storage.local is not available for status update');
+      console.error('后台：chrome.storage.local 不可用于状态更新');
       return;
     }
 
@@ -282,33 +279,33 @@ export async function updateModelStatus(
     };
     await chrome.storage.local.set({ modelState });
   } catch (error) {
-    console.error('Failed to update model status:', error);
+    console.error('更新模型状态失败：', error);
   }
 }
 
 /**
- * Handle model status updates from offscreen document
+ * 处理来自离屏文档的模型状态更新
  */
 export async function handleUpdateModelStatus(
   modelState: any,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Check if chrome.storage is available
+    // 检查 chrome.storage 是否可用
     if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
-      console.error('Background: chrome.storage.local is not available');
+      console.error('后台：chrome.storage.local 不可用');
       return { success: false, error: 'chrome.storage.local is not available' };
     }
 
     await chrome.storage.local.set({ modelState });
     return { success: true };
   } catch (error: any) {
-    console.error('Background: Failed to update model status:', error);
+    console.error('后台：更新模型状态失败：', error);
     return { success: false, error: error.message };
   }
 }
 
 /**
- * Analyze error type based on error message
+ * 根据错误消息分析错误类型
  */
 function analyzeErrorType(errorMessage: string): 'network' | 'file' | 'unknown' {
   const message = errorMessage.toLowerCase();
@@ -339,7 +336,7 @@ function analyzeErrorType(errorMessage: string): 'network' | 'file' | 'unknown' 
 }
 
 /**
- * Initialize semantic similarity module message listeners
+ * 初始化语义相似度模块消息监听器
  */
 export const initSemanticSimilarityListener = () => {
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

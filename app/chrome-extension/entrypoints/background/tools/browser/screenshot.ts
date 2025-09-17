@@ -11,14 +11,14 @@ import {
   compressImage,
 } from '../../../../utils/image-utils';
 
-// Screenshot-specific constants
+// 截图专用常量
 const SCREENSHOT_CONSTANTS = {
-  SCROLL_DELAY_MS: 350, // Time to wait after scroll for rendering and lazy loading
-  CAPTURE_STITCH_DELAY_MS: 50, // Small delay between captures in a scroll sequence
-  MAX_CAPTURE_PARTS: 50, // Maximum number of parts to capture (for infinite scroll pages)
-  MAX_CAPTURE_HEIGHT_PX: 50000, // Maximum height in pixels to capture
+  SCROLL_DELAY_MS: 350, // 滚动后等待渲染和懒加载的时间
+  CAPTURE_STITCH_DELAY_MS: 50, // 滚动序列中捕获之间的小延迟
+  MAX_CAPTURE_PARTS: 50, // 最大捕获部分数量（用于无限滚动页面）
+  MAX_CAPTURE_HEIGHT_PX: 50000, // 最大捕获高度（像素）
   PIXEL_TOLERANCE: 1,
-  SCRIPT_INIT_DELAY: 100, // Delay for script initialization
+  SCRIPT_INIT_DELAY: 100, // 脚本初始化延迟
 } as const;
 
 interface ScreenshotToolParams {
@@ -29,17 +29,17 @@ interface ScreenshotToolParams {
   storeBase64?: boolean;
   fullPage?: boolean;
   savePng?: boolean;
-  maxHeight?: number; // Maximum height to capture in pixels (for infinite scroll pages)
+  maxHeight?: number; // 最大捕获高度（像素）（用于无限滚动页面）
 }
 
 /**
- * Tool for capturing screenshots of web pages
+ * 用于捕获网页截图的工具
  */
 class ScreenshotTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.SCREENSHOT;
 
   /**
-   * Execute screenshot operation
+   * 执行截图操作
    */
   async execute(args: ScreenshotToolParams): Promise<ToolResult> {
     const {
@@ -50,25 +50,23 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
       savePng = true,
     } = args;
 
-    console.log(`Starting screenshot with options:`, args);
+    console.log(`开始截图，选项:`, args);
 
-    // Get current tab
+    // 获取当前标签页
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tabs[0]) {
       return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
     }
     const tab = tabs[0];
 
-    // Check URL restrictions
+    // 检查 URL 限制
     if (
       tab.url?.startsWith('chrome://') ||
       tab.url?.startsWith('edge://') ||
       tab.url?.startsWith('https://chrome.google.com/webstore') ||
       tab.url?.startsWith('https://microsoftedge.microsoft.com/')
     ) {
-      return createErrorResponse(
-        'Cannot capture special browser pages or web store pages due to security restrictions.',
-      );
+      return createErrorResponse('由于安全限制，无法捕获特殊浏览器页面或网上应用店页面。');
     }
 
     let finalImageDataUrl: string | undefined;
@@ -77,46 +75,46 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
 
     try {
       await this.injectContentScript(tab.id!, ['inject-scripts/screenshot-helper.js']);
-      // Wait for script initialization
+      // 等待脚本初始化
       await new Promise((resolve) => setTimeout(resolve, SCREENSHOT_CONSTANTS.SCRIPT_INIT_DELAY));
-      // 1. Prepare page (hide scrollbars, potentially fixed elements)
+      // 1. 准备页面（隐藏滚动条，可能的固定元素）
       await this.sendMessageToTab(tab.id!, {
         action: TOOL_MESSAGE_TYPES.SCREENSHOT_PREPARE_PAGE_FOR_CAPTURE,
         options: { fullPage },
       });
 
-      // Get initial page details, including original scroll position
+      // 获取初始页面详情，包括原始滚动位置
       const pageDetails = await this.sendMessageToTab(tab.id!, {
         action: TOOL_MESSAGE_TYPES.SCREENSHOT_GET_PAGE_DETAILS,
       });
       originalScroll = { x: pageDetails.currentScrollX, y: pageDetails.currentScrollY };
 
       if (fullPage) {
-        this.logInfo('Capturing full page...');
+        this.logInfo('捕获整页...');
         finalImageDataUrl = await this._captureFullPage(tab.id!, args, pageDetails);
       } else if (selector) {
-        this.logInfo(`Capturing element: ${selector}`);
+        this.logInfo(`捕获元素: ${selector}`);
         finalImageDataUrl = await this._captureElement(tab.id!, args, pageDetails.devicePixelRatio);
       } else {
-        // Visible area only
-        this.logInfo('Capturing visible area...');
+        // 仅可见区域
+        this.logInfo('捕获可见区域...');
         finalImageDataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
       }
 
       if (!finalImageDataUrl) {
-        throw new Error('Failed to capture image data');
+        throw new Error('捕获图像数据失败');
       }
 
-      // 2. Process output
+      // 2. 处理输出
       if (storeBase64 === true) {
-        // Compress image for base64 output to reduce size
+        // 压缩图像以减少 base64 输出大小
         const compressed = await compressImage(finalImageDataUrl, {
-          scale: 0.7, // Reduce dimensions by 30%
-          quality: 0.8, // 80% quality for good balance
-          format: 'image/jpeg', // JPEG for better compression
+          scale: 0.7, // 减少 30% 尺寸
+          quality: 0.8, // 80% 质量以获得良好平衡
+          format: 'image/jpeg', // JPEG 以获得更好的压缩
         });
 
-        // Include base64 data in response (without prefix)
+        // 在响应中包含 base64 数据（不带前缀）
         const base64Data = compressed.dataUrl.replace(/^data:image\/[^;]+;base64,/, '');
         results.base64 = base64Data;
         return {
@@ -131,14 +129,14 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
       }
 
       if (savePng === true) {
-        // Save PNG file to downloads
-        this.logInfo('Saving PNG...');
+        // 保存 PNG 文件到下载
+        this.logInfo('保存 PNG...');
         try {
-          // Generate filename
+          // 生成文件名
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
           const filename = `${name.replace(/[^a-z0-9_-]/gi, '_') || 'screenshot'}_${timestamp}.png`;
 
-          // Use Chrome's download API to save the file
+          // 使用 Chrome 的下载 API 保存文件
           const downloadId = await chrome.downloads.download({
             url: finalImageDataUrl,
             filename: filename,
@@ -149,32 +147,32 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
           results.filename = filename;
           results.fileSaved = true;
 
-          // Try to get the full file path
+          // 尝试获取完整文件路径
           try {
-            // Wait a moment to ensure download info is updated
+            // 等待一会儿以确保下载信息已更新
             await new Promise((resolve) => setTimeout(resolve, 100));
 
-            // Search for download item to get full path
+            // 搜索下载项以获取完整路径
             const [downloadItem] = await chrome.downloads.search({ id: downloadId });
             if (downloadItem && downloadItem.filename) {
-              // Add full path to response
+              // 将完整路径添加到响应中
               results.fullPath = downloadItem.filename;
             }
           } catch (pathError) {
-            console.warn('Could not get full file path:', pathError);
+            console.warn('无法获取完整文件路径:', pathError);
           }
         } catch (error) {
-          console.error('Error saving PNG file:', error);
+          console.error('保存 PNG 文件时出错:', error);
           results.saveError = String(error instanceof Error ? error.message : error);
         }
       }
     } catch (error) {
-      console.error('Error during screenshot execution:', error);
+      console.error('截图执行过程中出错:', error);
       return createErrorResponse(
-        `Screenshot error: ${error instanceof Error ? error.message : JSON.stringify(error)}`,
+        `截图错误: ${error instanceof Error ? error.message : JSON.stringify(error)}`,
       );
     } finally {
-      // 3. Reset page
+      // 3. 重置页面
       try {
         await this.sendMessageToTab(tab.id!, {
           action: TOOL_MESSAGE_TYPES.SCREENSHOT_RESET_PAGE_AFTER_CAPTURE,
@@ -182,11 +180,11 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
           scrollY: originalScroll.y,
         });
       } catch (err) {
-        console.warn('Failed to reset page, tab might have closed:', err);
+        console.warn('重置页面失败，标签页可能已关闭:', err);
       }
     }
 
-    this.logInfo('Screenshot completed!');
+    this.logInfo('截图完成!');
 
     return {
       content: [
@@ -194,7 +192,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
           type: 'text',
           text: JSON.stringify({
             success: true,
-            message: `Screenshot [${name}] captured successfully`,
+            message: `截图 [${name}] 捕获成功`,
             tabId: tab.id,
             url: tab.url,
             name: name,
@@ -207,14 +205,14 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
   }
 
   /**
-   * Log information
+   * 记录信息
    */
   private logInfo(message: string) {
-    console.log(`[Screenshot Tool] ${message}`);
+    console.log(`[截图工具] ${message}`);
   }
 
   /**
-   * Capture specific element
+   * 捕获特定元素
    */
   async _captureElement(
     tabId: number,
@@ -228,8 +226,8 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
 
     const dpr = elementDetails.devicePixelRatio || pageDpr || 1;
 
-    // Element rect is viewport-relative, in CSS pixels
-    // captureVisibleTab captures in physical pixels
+    // 元素矩形相对于视口，以 CSS 像素为单位
+    // captureVisibleTab 以物理像素捕获
     const cropRectPx = {
       x: elementDetails.rect.x * dpr,
       y: elementDetails.rect.y * dpr,
@@ -237,26 +235,26 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
       height: elementDetails.rect.height * dpr,
     };
 
-    // Small delay to ensure element is fully rendered after scrollIntoView
+    // 小延迟以确保元素在 scrollIntoView 后完全渲染
     await new Promise((resolve) => setTimeout(resolve, SCREENSHOT_CONSTANTS.SCRIPT_INIT_DELAY));
 
     const visibleCaptureDataUrl = await chrome.tabs.captureVisibleTab({ format: 'png' });
     if (!visibleCaptureDataUrl) {
-      throw new Error('Failed to capture visible tab for element cropping');
+      throw new Error('为元素裁剪捕获可见标签页失败');
     }
 
     const croppedCanvas = await cropAndResizeImage(
       visibleCaptureDataUrl,
       cropRectPx,
       dpr,
-      options.width, // Target output width in CSS pixels
-      options.height, // Target output height in CSS pixels
+      options.width, // 目标输出宽度（CSS 像素）
+      options.height, // 目标输出高度（CSS 像素）
     );
     return canvasToDataURL(croppedCanvas);
   }
 
   /**
-   * Capture full page
+   * 捕获整页
    */
   async _captureFullPage(
     tabId: number,
@@ -264,22 +262,22 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
     initialPageDetails: any,
   ): Promise<string> {
     const dpr = initialPageDetails.devicePixelRatio;
-    const totalWidthCss = options.width || initialPageDetails.totalWidth; // Use option width if provided
-    const totalHeightCss = initialPageDetails.totalHeight; // Full page always uses actual height
+    const totalWidthCss = options.width || initialPageDetails.totalWidth; // 如果提供则使用选项宽度
+    const totalHeightCss = initialPageDetails.totalHeight; // 整页始终使用实际高度
 
-    // Apply maximum height limit for infinite scroll pages
+    // 为无限滚动页面应用最大高度限制
     const maxHeightPx = options.maxHeight || SCREENSHOT_CONSTANTS.MAX_CAPTURE_HEIGHT_PX;
     const limitedHeightCss = Math.min(totalHeightCss, maxHeightPx / dpr);
 
     const totalWidthPx = totalWidthCss * dpr;
     const totalHeightPx = limitedHeightCss * dpr;
 
-    // Viewport dimensions (CSS pixels) - logged for debugging
+    // 视口尺寸（CSS 像素）- 记录用于调试
     this.logInfo(
-      `Viewport size: ${initialPageDetails.viewportWidth}x${initialPageDetails.viewportHeight} CSS pixels`,
+      `视口大小: ${initialPageDetails.viewportWidth}x${initialPageDetails.viewportHeight} CSS 像素`,
     );
     this.logInfo(
-      `Page dimensions: ${totalWidthCss}x${totalHeightCss} CSS pixels (limited to ${limitedHeightCss} height)`,
+      `页面尺寸: ${totalWidthCss}x${totalHeightCss} CSS 像素（限制为 ${limitedHeightCss} 高度）`,
     );
 
     const viewportHeightCss = initialPageDetails.viewportHeight;
@@ -291,33 +289,33 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
 
     while (capturedHeightPx < totalHeightPx && partIndex < SCREENSHOT_CONSTANTS.MAX_CAPTURE_PARTS) {
       this.logInfo(
-        `Capturing part ${partIndex + 1}... (${Math.round((capturedHeightPx / totalHeightPx) * 100)}%)`,
+        `捕获第 ${partIndex + 1} 部分... (${Math.round((capturedHeightPx / totalHeightPx) * 100)}%)`,
       );
 
       if (currentScrollYCss > 0) {
-        // Don't scroll for the first part if already at top
+        // 如果已在顶部，则不为第一部分滚动
         const scrollResp = await this.sendMessageToTab(tabId, {
           action: TOOL_MESSAGE_TYPES.SCREENSHOT_SCROLL_PAGE,
           x: 0,
           y: currentScrollYCss,
           scrollDelay: SCREENSHOT_CONSTANTS.SCROLL_DELAY_MS,
         });
-        // Update currentScrollYCss based on actual scroll achieved
+        // 根据实际滚动成就更新 currentScrollYCss
         currentScrollYCss = scrollResp.newScrollY;
       }
 
-      // Ensure rendering after scroll
+      // 确保滚动后渲染
       await new Promise((resolve) =>
         setTimeout(resolve, SCREENSHOT_CONSTANTS.CAPTURE_STITCH_DELAY_MS),
       );
 
       const dataUrl = await chrome.tabs.captureVisibleTab({ format: 'png' });
-      if (!dataUrl) throw new Error('captureVisibleTab returned empty during full page capture');
+      if (!dataUrl) throw new Error('在整页捕获期间 captureVisibleTab 返回空值');
 
       const yOffsetPx = currentScrollYCss * dpr;
       capturedParts.push({ dataUrl, y: yOffsetPx });
 
-      const imgForHeight = await createImageBitmapFromUrl(dataUrl); // To get actual captured height
+      const imgForHeight = await createImageBitmapFromUrl(dataUrl); // 获取实际捕获高度
       const lastPartEffectiveHeightPx = Math.min(imgForHeight.height, totalHeightPx - yOffsetPx);
 
       capturedHeightPx = yOffsetPx + lastPartEffectiveHeightPx;
@@ -325,7 +323,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
       if (capturedHeightPx >= totalHeightPx - SCREENSHOT_CONSTANTS.PIXEL_TOLERANCE) break;
 
       currentScrollYCss += viewportHeightCss;
-      // Prevent overscrolling past the document height for the next scroll command
+      // 防止下一个滚动命令过度滚动超过文档高度
       if (
         currentScrollYCss > totalHeightCss - viewportHeightCss &&
         currentScrollYCss < totalHeightCss
@@ -335,22 +333,22 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
       partIndex++;
     }
 
-    // Check if we hit any limits
+    // 检查是否达到任何限制
     if (partIndex >= SCREENSHOT_CONSTANTS.MAX_CAPTURE_PARTS) {
       this.logInfo(
-        `Reached maximum number of capture parts (${SCREENSHOT_CONSTANTS.MAX_CAPTURE_PARTS}). This may be an infinite scroll page.`,
+        `达到最大捕获部分数量 (${SCREENSHOT_CONSTANTS.MAX_CAPTURE_PARTS})。这可能是无限滚动页面。`,
       );
     }
     if (totalHeightCss > limitedHeightCss) {
       this.logInfo(
-        `Page height (${totalHeightCss}px) exceeds maximum capture height (${maxHeightPx / dpr}px). Capturing limited portion.`,
+        `页面高度 (${totalHeightCss}px) 超过最大捕获高度 (${maxHeightPx / dpr}px)。捕获有限部分。`,
       );
     }
 
-    this.logInfo('Stitching image...');
+    this.logInfo('拼接图像...');
     const finalCanvas = await stitchImages(capturedParts, totalWidthPx, totalHeightPx);
 
-    // If user specified width but not height (or vice versa for full page), resize maintaining aspect ratio
+    // 如果用户指定了宽度但未指定高度（或整页的反之），则调整大小保持纵横比
     let outputCanvas = finalCanvas;
     if (options.width && !options.height) {
       const targetWidthPx = options.width * dpr;
@@ -371,7 +369,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         ctx.drawImage(finalCanvas, 0, 0, targetWidthPx, targetHeightPx);
       }
     } else if (options.width && options.height) {
-      // Both specified, direct resize
+      // 两者都指定，直接调整大小
       const targetWidthPx = options.width * dpr;
       const targetHeightPx = options.height * dpr;
       outputCanvas = new OffscreenCanvas(targetWidthPx, targetHeightPx);

@@ -1,11 +1,11 @@
 /* eslint-disable */
 // interactive-elements-helper.js
-// This script is injected into the page to find interactive elements.
-// Final version by Calvin, featuring a multi-layered fallback strategy
-// and comprehensive element support, built on a performant and reliable core.
+// 此脚本被注入到页面中以查找交互元素。
+// Calvin 的最终版本，具有多层回退策略
+// 和全面的元素支持，构建在高性能和可靠的核心上。
 
 (function () {
-  // Prevent re-initialization
+  // 防止重复初始化
   if (window.__INTERACTIVE_ELEMENTS_HELPER_INITIALIZED__) {
     return;
   }
@@ -13,19 +13,19 @@
 
   /**
    * @typedef {Object} ElementInfo
-   * @property {string} type - The type of the element (e.g., 'button', 'link').
-   * @property {string} selector - A CSS selector to uniquely identify the element.
-   * @property {string} text - The visible text or accessible name of the element.
-   * @property {boolean} isInteractive - Whether the element is currently interactive.
-   * @property {Object} [coordinates] - The coordinates of the element if requested.
-   * @property {boolean} [disabled] - For elements that can be disabled.
-   * @property {string} [href] - For links.
-   * @property {boolean} [checked] - for checkboxes and radio buttons.
+   * @property {string} type - 元素的类型（例如，'button'、'link'）。
+   * @property {string} selector - 用于唯一标识元素的 CSS 选择器。
+   * @property {string} text - 元素的可见文本或可访问名称。
+   * @property {boolean} isInteractive - 元素当前是否交互。
+   * @property {Object} [coordinates] - 如果请求，元素的坐标。
+   * @property {boolean} [disabled] - 对于可以禁用的元素。
+   * @property {string} [href] - 对于链接。
+   * @property {boolean} [checked] - 对于复选框和单选按钮。
    */
 
   /**
-   * Configuration for element types and their corresponding selectors.
-   * Now more comprehensive with common ARIA roles.
+   * 元素类型及其相应选择器的配置。
+   * 现在更全面，包含常见的 ARIA 角色。
    */
   const ELEMENT_CONFIG = {
     button: 'button, input[type="button"], input[type="submit"], [role="button"]',
@@ -37,22 +37,22 @@
     textarea: 'textarea',
     select: 'select',
     tab: '[role="tab"]',
-    // Generic interactive elements: combines tabindex, common roles, and explicit handlers.
-    // This is the key to finding custom-built interactive components.
+    // 通用交互元素：结合 tabindex、常见角色和显式处理程序。
+    // 这是查找自定义构建的交互组件的关键。
     interactive: `[onclick], [tabindex]:not([tabindex^="-"]), [role="menuitem"], [role="slider"], [role="option"], [role="treeitem"]`,
   };
 
-  // A combined selector for ANY interactive element, used in the fallback logic.
+  // 任何交互元素的组合选择器，用于回退逻辑。
   const ANY_INTERACTIVE_SELECTOR = Object.values(ELEMENT_CONFIG).join(', ');
 
-  // --- Core Helper Functions ---
+  // --- 核心助手函数 ---
 
   /**
-   * Checks if an element is genuinely visible on the page.
-   * "Visible" means it's not styled with display:none, visibility:hidden, etc.
-   * This check intentionally IGNORES whether the element is within the current viewport.
-   * @param {Element} el The element to check.
-   * @returns {boolean} True if the element is visible.
+   * 检查元素在页面上是否真正可见。
+   * “可见”意味着它没有使用 display:none、visibility:hidden 等样式。
+   * 此检查有意忽略元素是否在当前视口内。
+   * @param {Element} el 要检查的元素。
+   * @returns {boolean} 如果元素可见则为 true。
    */
   function isElementVisible(el) {
     if (!el || !el.isConnected) return false;
@@ -67,13 +67,13 @@
     }
 
     const rect = el.getBoundingClientRect();
-    return rect.width > 0 || rect.height > 0 || el.tagName === 'A'; // Allow zero-size anchors as they can still be navigated
+    return rect.width > 0 || rect.height > 0 || el.tagName === 'A'; // 允许零尺寸锤点，因为它们仍然可以导航
   }
 
   /**
-   * Checks if an element is considered interactive (not disabled or hidden from accessibility).
-   * @param {Element} el The element to check.
-   * @returns {boolean} True if the element is interactive.
+   * 检查元素是否被认为是交互的（未禁用或从可访问性中隐藏）。
+   * @param {Element} el 要检查的元素。
+   * @returns {boolean} 如果元素是交互的则为 true。
    */
   function isElementInteractive(el) {
     if (el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true') {
@@ -86,9 +86,9 @@
   }
 
   /**
-   * Generates a reasonably stable CSS selector for a given element.
-   * @param {Element} el The element.
-   * @returns {string} A CSS selector.
+   * 为给定元素生成相对稳定的 CSS 选择器。
+   * @param {Element} el 元素。
+   * @returns {string} CSS 选择器。
    */
   function generateSelector(el) {
     if (!(el instanceof Element)) return '';
@@ -127,9 +127,9 @@
   }
 
   /**
-   * Finds the accessible name for an element (label, aria-label, etc.).
-   * @param {Element} el The element.
-   * @returns {string} The accessible name.
+   * 查找元素的可访问名称（标签、aria-label 等）。
+   * @param {Element} el 元素。
+   * @returns {string} 可访问名称。
    */
   function getAccessibleName(el) {
     const labelledby = el.getAttribute('aria-labelledby');
@@ -155,9 +155,9 @@
   }
 
   /**
-   * Simple subsequence matching for fuzzy search.
-   * @param {string} text The text to search within.
-   * @param {string} query The query subsequence.
+   * 用于模糊搜索的简单子序列匹配。
+   * @param {string} text 要在其中搜索的文本。
+   * @param {string} query 查询子序列。
    * @returns {boolean}
    */
   function fuzzyMatch(text, query) {
@@ -176,8 +176,8 @@
   }
 
   /**
-   * Creates the standardized info object for an element.
-   * Modified to handle the new 'text' type from the final fallback.
+   * 为元素创建标准化的信息对象。
+   * 修改以处理来自最终回退的新 'text' 类型。
    */
   function createElementInfo(el, type, includeCoordinates, isInteractiveOverride = null) {
     const isActuallyInteractive = isElementInteractive(el);
@@ -209,8 +209,8 @@
   }
 
   /**
-   * [CORE UTILITY] Finds interactive elements based on a set of types.
-   * This is our high-performance Layer 1 search function.
+   * [核心实用程序] 根据一组类型查找交互元素。
+   * 这是我们的高性能第 1 层搜索函数。
    */
   function findInteractiveElements(options = {}) {
     const { textQuery, includeCoordinates = true, types = Object.keys(ELEMENT_CONFIG) } = options;
@@ -244,8 +244,8 @@
   }
 
   /**
-   * [ORCHESTRATOR] The main entry point that implements the 3-layer fallback logic.
-   * @param {object} options - The main search options.
+   * [编排器] 实现 3 层回退逻辑的主入口点。
+   * @param {object} options - 主要搜索选项。
    * @returns {ElementInfo[]}
    */
   function findElementsByTextWithFallback(options = {}) {
@@ -255,13 +255,13 @@
       return findInteractiveElements({ ...options, types: Object.keys(ELEMENT_CONFIG) });
     }
 
-    // --- Layer 1: High-reliability search for interactive elements matching text ---
+    // --- 第 1 层：高可靠性搜索匹配文本的交互元素 ---
     let results = findInteractiveElements({ ...options, types: Object.keys(ELEMENT_CONFIG) });
     if (results.length > 0) {
       return results;
     }
 
-    // --- Layer 2: Find text, then find its interactive ancestor ---
+    // --- 第 2 层：查找文本，然后查找其交互祖先 ---
     const lowerCaseText = textQuery.toLowerCase();
     const xPath = `//text()[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${lowerCaseText}')]`;
     const textNodes = document.evaluate(
@@ -302,7 +302,7 @@
       }
     }
 
-    // --- Layer 3: Final fallback, return any element containing the text ---
+    // --- 第 3 层：最终回退，返回包含文本的任何元素 ---
     const leafElements = new Set();
     for (let i = 0; i < textNodes.snapshotLength; i++) {
       const parentElement = textNodes.snapshotItem(i).parentElement;
@@ -318,13 +318,13 @@
     return finalElements.map((el) => createElementInfo(el, 'text', includeCoordinates, true));
   }
 
-  // --- Chrome Message Listener ---
+  // --- Chrome 消息监听器 ---
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (request.action === 'getInteractiveElements') {
       try {
         let elements;
         if (request.selector) {
-          // If a selector is provided, bypass the text-based logic and use a direct query.
+          // 如果提供了选择器，则绕过基于文本的逻辑并使用直接查询。
           const foundEls = Array.from(document.querySelectorAll(request.selector));
           elements = foundEls.map((el) =>
             createElementInfo(
@@ -335,20 +335,20 @@
             ),
           );
         } else {
-          // Otherwise, use our powerful multi-layered text search
+          // 否则，使用我们强大的多层文本搜索
           elements = findElementsByTextWithFallback(request);
         }
         sendResponse({ success: true, elements });
       } catch (error) {
-        console.error('Error in getInteractiveElements:', error);
+        console.error('getInteractiveElements 中出错:', error);
         sendResponse({ success: false, error: error.message });
       }
-      return true; // Async response
+      return true; // 异步响应
     } else if (request.action === 'chrome_get_interactive_elements_ping') {
       sendResponse({ status: 'pong' });
       return false;
     }
   });
 
-  console.log('Interactive elements helper script loaded');
+  console.log('交互元素助手脚本已加载');
 })();

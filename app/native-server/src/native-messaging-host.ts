@@ -18,7 +18,7 @@ export class NativeMessagingHost {
     this.associatedServer = serverInstance;
   }
 
-  // add message handler to wait for start server
+  // 添加消息处理器等待启动服务器
   public start(): void {
     try {
       this.setupMessageHandling();
@@ -49,9 +49,9 @@ export class NativeMessagingHost {
             const message = JSON.parse(messageBuffer.toString());
             this.handleMessage(message);
           } catch (error: any) {
-            this.sendError(`Failed to parse message: ${error.message}`);
+            this.sendError(`解析消息失败: ${error.message}`);
           }
-          expectedLength = -1; // reset to get next data
+          expectedLength = -1; // 重置以获取下一个数据
         }
       }
     });
@@ -67,7 +67,7 @@ export class NativeMessagingHost {
 
   private async handleMessage(message: any): Promise<void> {
     if (!message || typeof message !== 'object') {
-      this.sendError('Invalid message format');
+      this.sendError('无效的消息格式');
       return;
     }
 
@@ -84,12 +84,12 @@ export class NativeMessagingHost {
         }
         this.pendingRequests.delete(requestId);
       } else {
-        // just ignore
+        // 直接忽略
       }
       return;
     }
 
-    // Handle directive messages from Chrome
+    // 处理来自 Chrome 的指令消息
     try {
       switch (message.type) {
         case NativeMessageType.START:
@@ -98,28 +98,26 @@ export class NativeMessagingHost {
         case NativeMessageType.STOP:
           await this.stopServer();
           break;
-        // Keep ping/pong for simple liveness detection, but this differs from request-response pattern
+        // 保持 ping/pong 用于简单的活跃检测，但这与请求-响应模式不同
         case 'ping_from_extension':
           this.sendMessage({ type: 'pong_to_extension' });
           break;
         default:
-          // Double check when message type is not supported
+          // 当消息类型不受支持时进行双重检查
           if (!message.responseToRequestId) {
-            this.sendError(
-              `Unknown message type or non-response message: ${message.type || 'no type'}`,
-            );
+            this.sendError(`未知的消息类型或非响应消息: ${message.type || '无类型'}`);
           }
       }
     } catch (error: any) {
-      this.sendError(`Failed to handle directive message: ${error.message}`);
+      this.sendError(`处理指令消息失败: ${error.message}`);
     }
   }
 
   /**
-   * Send request to Chrome and wait for response
-   * @param messagePayload Data to send to Chrome
-   * @param timeoutMs Timeout for waiting response (milliseconds)
-   * @returns Promise, resolves to Chrome's returned payload on success, rejects on failure
+   * 向 Chrome 发送请求并等待响应
+   * @param messagePayload 要发送给 Chrome 的数据
+   * @param timeoutMs 等待响应的超时时间（毫秒）
+   * @returns Promise，成功时解析为 Chrome 返回的载荷，失败时拒绝
    */
   public sendRequestToExtensionAndWait(
     messagePayload: any,
@@ -127,38 +125,38 @@ export class NativeMessagingHost {
     timeoutMs: number = TIMEOUTS.DEFAULT_REQUEST_TIMEOUT,
   ): Promise<any> {
     return new Promise((resolve, reject) => {
-      const requestId = uuidv4(); // Generate unique request ID
+      const requestId = uuidv4(); // 生成唯一请求 ID
 
       const timeoutId = setTimeout(() => {
-        this.pendingRequests.delete(requestId); // Remove from Map after timeout
-        reject(new Error(`Request timed out after ${timeoutMs}ms`));
+        this.pendingRequests.delete(requestId); // 超时后从 Map 中移除
+        reject(new Error(`请求在 ${timeoutMs}ms 后超时`));
       }, timeoutMs);
 
-      // Store request's resolve/reject functions and timeout ID
+      // 存储请求的 resolve/reject 函数和超时 ID
       this.pendingRequests.set(requestId, { resolve, reject, timeoutId });
 
-      // Send message with requestId to Chrome
+      // 向 Chrome 发送带有 requestId 的消息
       this.sendMessage({
-        type: messageType, // Define a request type, e.g. 'request_data'
+        type: messageType, // 定义请求类型，例如 'request_data'
         payload: messagePayload,
-        requestId: requestId, // <--- Key: include request ID
+        requestId: requestId, // <--- 关键：包含请求 ID
       });
     });
   }
 
   /**
-   * Start Fastify server (now accepts Server instance)
+   * 启动 Fastify 服务器（现在接受 Server 实例）
    */
   private async startServer(port: number): Promise<void> {
     if (!this.associatedServer) {
-      this.sendError('Internal error: server instance not set');
+      this.sendError('内部错误: 服务器实例未设置');
       return;
     }
     try {
       if (this.associatedServer.isRunning) {
         this.sendMessage({
           type: NativeMessageType.ERROR,
-          payload: { message: 'Server is already running' },
+          payload: { message: '服务器已在运行' },
         });
         return;
       }
@@ -169,41 +167,40 @@ export class NativeMessagingHost {
         type: NativeMessageType.SERVER_STARTED,
         payload: { port },
       });
-
     } catch (error: any) {
-      this.sendError(`Failed to start server: ${error.message}`);
+      this.sendError(`启动服务器失败: ${error.message}`);
     }
   }
 
   /**
-   * Stop Fastify server
+   * 停止 Fastify 服务器
    */
   private async stopServer(): Promise<void> {
     if (!this.associatedServer) {
-      this.sendError('Internal error: server instance not set');
+      this.sendError('内部错误: 服务器实例未设置');
       return;
     }
     try {
-      // Check status through associatedServer
+      // 通过 associatedServer 检查状态
       if (!this.associatedServer.isRunning) {
         this.sendMessage({
           type: NativeMessageType.ERROR,
-          payload: { message: 'Server is not running' },
+          payload: { message: '服务器未运行' },
         });
         return;
       }
 
       await this.associatedServer.stop();
-      // this.serverStarted = false; // Server should update its own status after successful stop
+      // this.serverStarted = false; // 服务器应该在成功停止后更新自己的状态
 
-      this.sendMessage({ type: NativeMessageType.SERVER_STOPPED }); // Distinguish from previous 'stopped'
+      this.sendMessage({ type: NativeMessageType.SERVER_STOPPED }); // 与之前的 'stopped' 区分
     } catch (error: any) {
-      this.sendError(`Failed to stop server: ${error.message}`);
+      this.sendError(`停止服务器失败: ${error.message}`);
     }
   }
 
   /**
-   * Send message to Chrome extension
+   * 向 Chrome 扩展发送消息
    */
   public sendMessage(message: any): void {
     try {
@@ -211,41 +208,39 @@ export class NativeMessagingHost {
       const messageBuffer = Buffer.from(messageString);
       const headerBuffer = Buffer.alloc(4);
       headerBuffer.writeUInt32LE(messageBuffer.length, 0);
-      // Ensure atomic write
+      // 确保原子写入
       stdout.write(Buffer.concat([headerBuffer, messageBuffer]), (err) => {
         if (err) {
-          // Consider how to handle write failure, may affect request completion
+          // 考虑如何处理写入失败，可能影响请求完成
         } else {
-          // Message sent successfully, no action needed
+          // 消息发送成功，无需操作
         }
       });
     } catch (error: any) {
-      // Catch JSON.stringify or Buffer operation errors
-      // If preparation stage fails, associated request may never be sent
-      // Need to consider whether to reject corresponding Promise (if called within sendRequestToExtensionAndWait)
+      // 捕获 JSON.stringify 或 Buffer 操作错误
+      // 如果准备阶段失败，相关请求可能永远不会被发送
+      // 需要考虑是否拒绝相应的 Promise（如果在 sendRequestToExtensionAndWait 内调用）
     }
   }
 
   /**
-   * Send error message to Chrome extension (mainly for sending non-request-response type errors)
+   * 向 Chrome 扩展发送错误消息（主要用于发送非请求-响应类型的错误）
    */
   private sendError(errorMessage: string): void {
     this.sendMessage({
-      type: NativeMessageType.ERROR_FROM_NATIVE_HOST, // Use more explicit type
+      type: NativeMessageType.ERROR_FROM_NATIVE_HOST, // 使用更明确的类型
       payload: { message: errorMessage },
     });
   }
 
-
-
   /**
-   * Clean up resources
+   * 清理资源
    */
   private cleanup(): void {
-    // Reject all pending requests
+    // 拒绝所有待处理的请求
     this.pendingRequests.forEach((pending) => {
       clearTimeout(pending.timeoutId);
-      pending.reject(new Error('Native host is shutting down or Chrome disconnected.'));
+      pending.reject(new Error('原生主机正在关闭或 Chrome 已断开连接。'));
     });
     this.pendingRequests.clear();
 

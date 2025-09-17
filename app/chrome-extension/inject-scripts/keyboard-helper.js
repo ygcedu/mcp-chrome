@@ -1,14 +1,14 @@
 /* eslint-disable */
 // keyboard-helper.js
-// This script is injected into the page to handle keyboard event simulation
+// 此脚本被注入到页面中以处理键盘事件模拟
 
 if (window.__KEYBOARD_HELPER_INITIALIZED__) {
-  // Already initialized, skip
+  // 已初始化，跳过
 } else {
   window.__KEYBOARD_HELPER_INITIALIZED__ = true;
 
-  // A map for special keys to their KeyboardEvent properties
-  // Key names should be lowercase for matching
+  // 特殊键到其 KeyboardEvent 属性的映射
+  // 键名应为小写以便匹配
   const SPECIAL_KEY_MAP = {
     enter: { key: 'Enter', code: 'Enter', keyCode: 13 },
     tab: { key: 'Tab', code: 'Tab', keyCode: 9 },
@@ -31,7 +31,7 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
     pageup: { key: 'PageUp', code: 'PageUp', keyCode: 33 },
     pagedown: { key: 'PageDown', code: 'PageDown', keyCode: 34 },
     insert: { key: 'Insert', code: 'Insert', keyCode: 45 },
-    // Function keys
+    // 功能键
     ...Object.fromEntries(
       Array.from({ length: 12 }, (_, i) => [
         `f${i + 1}`,
@@ -51,10 +51,10 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
   };
 
   /**
-   * Parses a key string (e.g., "Ctrl+Shift+A", "Enter") into a main key and modifiers.
-   * @param {string} keyString - String representation of a single key press (can include modifiers).
+   * 解析键字符串（例如 "Ctrl+Shift+A"、"Enter"）为主键和修饰符。
+   * @param {string} keyString - 单次按键的字符串表示（可包含修饰符）。
    * @returns { {key: string, code: string, keyCode: number, charCode?: number, modifiers: {ctrlKey:boolean, altKey:boolean, shiftKey:boolean, metaKey:boolean}} | null }
-   *          Returns null if the keyString is invalid or represents only modifiers.
+   *          如果 keyString 无效或仅表示修饰符，则返回 null。
    */
   function parseSingleKeyCombination(keyString) {
     const parts = keyString.split('+').map((part) => part.trim().toLowerCase());
@@ -70,22 +70,22 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
       if (MODIFIER_KEYS[part]) {
         modifiers[MODIFIER_KEYS[part]] = true;
       } else if (mainKeyPart === null) {
-        // First non-modifier is the main key
+        // 第一个非修饰符是主键
         mainKeyPart = part;
       } else {
-        // Invalid format: multiple main keys in a single combination (e.g., "Ctrl+A+B")
-        console.error(`Invalid key combination string: ${keyString}. Multiple main keys found.`);
+        // 无效格式：单个组合中有多个主键（例如 "Ctrl+A+B"）
+        console.error(`无效的键组合字符串: ${keyString}。找到多个主键。`);
         return null;
       }
     }
 
     if (!mainKeyPart) {
-      // This case could happen if the keyString is something like "Ctrl+" or just "Ctrl"
-      // If the intent was to press JUST 'Control', the input should be 'Control' not 'Control+'
-      // Let's check if mainKeyPart is actually a modifier name used as a main key
+      // 如果 keyString 是 "Ctrl+" 或仅是 "Ctrl"，可能会发生这种情况
+      // 如果意图是仅按 'Control'，输入应该是 'Control' 而不是 'Control+'
+      // 让我们检查 mainKeyPart 是否实际上是用作主键的修饰符名称
       if (Object.keys(MODIFIER_KEYS).includes(parts[parts.length - 1]) && parts.length === 1) {
-        mainKeyPart = parts[parts.length - 1]; // e.g. user wants to press "Control" key itself
-        // For "Control" key itself, key: "Control", code: "ControlLeft" (or Right)
+        mainKeyPart = parts[parts.length - 1]; // 例如用户想要按 "Control" 键本身
+        // 对于 "Control" 键本身，key: "Control"，code: "ControlLeft"（或 Right）
         if (mainKeyPart === 'ctrl' || mainKeyPart === 'control')
           return { key: 'Control', code: 'ControlLeft', keyCode: 17, modifiers };
         if (mainKeyPart === 'alt') return { key: 'Alt', code: 'AltLeft', keyCode: 18, modifiers };
@@ -94,7 +94,7 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
         if (mainKeyPart === 'meta' || mainKeyPart === 'command' || mainKeyPart === 'cmd')
           return { key: 'Meta', code: 'MetaLeft', keyCode: 91, modifiers };
       } else {
-        console.error(`Invalid key combination string: ${keyString}. No main key specified.`);
+        console.error(`无效的键组合字符串: ${keyString}。未指定主键。`);
         return null;
       }
     }
@@ -104,11 +104,11 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
       return { ...specialKey, modifiers };
     }
 
-    // For single characters or other unmapped keys
+    // 对于单个字符或其他未映射的键
     if (mainKeyPart.length === 1) {
       const charCode = mainKeyPart.charCodeAt(0);
-      // If Shift is active and it's a letter, use the uppercase version for 'key'
-      // This mimics more closely how keyboards behave.
+      // 如果 Shift 激活且是字母，使用大写版本作为 'key'
+      // 这更接近键盘的实际行为。
       let keyChar = mainKeyPart;
       if (modifiers.shiftKey && mainKeyPart.match(/^[a-z]$/i)) {
         keyChar = mainKeyPart.toUpperCase();
@@ -116,25 +116,25 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
 
       return {
         key: keyChar,
-        code: `Key${mainKeyPart.toUpperCase()}`, // 'a' -> KeyA, 'A' -> KeyA
+        code: `Key${mainKeyPart.toUpperCase()}`, // 'a' -> KeyA，'A' -> KeyA
         keyCode: charCode,
-        charCode: charCode, // charCode is legacy, but some old systems might use it
+        charCode: charCode, // charCode 是遗留的，但一些旧系统可能会使用它
         modifiers,
       };
     }
 
-    console.error(`Unknown key: ${mainKeyPart} in string "${keyString}"`);
-    return null; // Or handle as an error
+    console.error(`未知键: ${mainKeyPart} 在字符串 "${keyString}" 中`);
+    return null; // 或作为错误处理
   }
 
   /**
-   * Simulates a single key press (keydown, (keypress), keyup) for a parsed key.
+   * 为解析的键模拟单次按键（keydown、(keypress)、keyup）。
    * @param { {key: string, code: string, keyCode: number, charCode?: number, modifiers: object} } parsedKeyInfo
-   * @param {Element} element - Target element.
+   * @param {Element} element - 目标元素。
    * @returns {{success: boolean, error?: string}}
    */
   function dispatchKeyEvents(parsedKeyInfo, element) {
-    if (!parsedKeyInfo) return { success: false, error: 'Invalid key info provided for dispatch.' };
+    if (!parsedKeyInfo) return { success: false, error: '为分发提供的键信息无效。' };
 
     const { key, code, keyCode, charCode, modifiers } = parsedKeyInfo;
 
@@ -143,10 +143,10 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
       code: code,
       bubbles: true,
       cancelable: true,
-      composed: true, // Important for shadow DOM
+      composed: true, // 对 shadow DOM 很重要
       view: window,
       ...modifiers, // ctrlKey, altKey, shiftKey, metaKey
-      // keyCode/which are deprecated but often set for compatibility
+      // keyCode/which 已弃用但通常为兼容性而设置
       keyCode: keyCode || (key.length === 1 ? key.charCodeAt(0) : 0),
       which: keyCode || (key.length === 1 ? key.charCodeAt(0) : 0),
     };
@@ -154,8 +154,8 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
     try {
       const kdRes = element.dispatchEvent(new KeyboardEvent('keydown', eventOptions));
 
-      // keypress is deprecated, but simulate if it's a character key or Enter
-      // Only dispatch if keydown was not cancelled and it's a character producing key
+      // keypress 已弃用，但如果是字符键或 Enter 则模拟
+      // 仅在 keydown 未被取消且是产生字符的键时分发
       if (kdRes && (key.length === 1 || key === 'Enter' || key === ' ')) {
         const keypressOptions = { ...eventOptions };
         if (charCode) keypressOptions.charCode = charCode;
@@ -165,20 +165,20 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
       element.dispatchEvent(new KeyboardEvent('keyup', eventOptions));
       return { success: true };
     } catch (error) {
-      console.error(`Error dispatching key events for "${key}":`, error);
+      console.error(`为 "${key}" 分发键事件时出错:`, error);
       return {
         success: false,
-        error: `Error dispatching key events for "${key}": ${error.message}`,
+        error: `为 "${key}" 分发键事件时出错: ${error.message}`,
       };
     }
   }
 
   /**
-   * Simulate keyboard events on an element or document
-   * @param {string} keysSequenceString - String representation of key(s) (e.g., "Enter", "Ctrl+C, A, B")
-   * @param {Element} targetElement - Element to dispatch events on (optional)
-   * @param {number} delay - Delay between key sequences in milliseconds (optional)
-   * @returns {Promise<Object>} - Result of the keyboard operation
+   * 在元素或文档上模拟键盘事件
+   * @param {string} keysSequenceString - 键的字符串表示（例如 "Enter"、"Ctrl+C, A, B"）
+   * @param {Element} targetElement - 要分发事件的元素（可选）
+   * @param {number} delay - 键序列之间的延迟（毫秒）（可选）
+   * @returns {Promise<Object>} - 键盘操作的结果
    */
   async function simulateKeyboard(keysSequenceString, targetElement = null, delay = 0) {
     try {
@@ -186,7 +186,7 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
 
       if (element !== document.activeElement && typeof element.focus === 'function') {
         element.focus();
-        await new Promise((resolve) => setTimeout(resolve, 50)); // Small delay for focus
+        await new Promise((resolve) => setTimeout(resolve, 50)); // 聚焦的小延迟
       }
 
       const keyCombinations = keysSequenceString
@@ -203,9 +203,9 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
           operationResults.push({
             keyCombination: comboString,
             success: false,
-            error: `Invalid key string or combination: ${comboString}`,
+            error: `无效的键字符串或组合: ${comboString}`,
           });
-          continue; // Skip to next combination in sequence
+          continue; // 跳到序列中的下一个组合
         }
 
         const dispatchResult = dispatchKeyEvents(parsedKeyInfo, element);
@@ -215,11 +215,9 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
         });
 
         if (dispatchResult.error) {
-          // Optionally, decide if sequence should stop on first error
-          // For now, we continue but log the error in results
-          console.warn(
-            `Failed to simulate key combination "${comboString}": ${dispatchResult.error}`,
-          );
+          // 可选择决定序列是否应在第一个错误时停止
+          // 现在我们继续但在结果中记录错误
+          console.warn(`模拟键组合 "${comboString}" 失败: ${dispatchResult.error}`);
         }
 
         if (delay > 0 && i < keyCombinations.length - 1) {
@@ -227,33 +225,33 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
         }
       }
 
-      // Check if all individual operations were successful
+      // 检查所有单独操作是否成功
       const overallSuccess = operationResults.every((r) => r.success);
 
       return {
         success: overallSuccess,
         message: overallSuccess
-          ? `Keyboard events simulated successfully: ${keysSequenceString}`
-          : `Some keyboard events failed for: ${keysSequenceString}`,
-        results: operationResults, // Detailed results for each key combination
+          ? `键盘事件模拟成功: ${keysSequenceString}`
+          : `某些键盘事件失败: ${keysSequenceString}`,
+        results: operationResults, // 每个键组合的详细结果
         targetElement: {
           tagName: element.tagName,
           id: element.id,
           className: element.className,
-          type: element.type, // if applicable e.g. for input
+          type: element.type, // 如果适用，例如对于 input
         },
       };
     } catch (error) {
-      console.error('Error in simulateKeyboard:', error);
+      console.error('simulateKeyboard 中的错误:', error);
       return {
         success: false,
-        error: `Error simulating keyboard events: ${error.message}`,
+        error: `模拟键盘事件时出错: ${error.message}`,
         results: [],
       };
     }
   }
 
-  // Listener for messages from the extension
+  // 监听来自扩展的消息
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (request.action === 'simulateKeyboard') {
       let targetEl = null;
@@ -262,30 +260,30 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
         if (!targetEl) {
           sendResponse({
             success: false,
-            error: `Element with selector "${request.selector}" not found`,
+            error: `未找到选择器为 "${request.selector}" 的元素`,
             results: [],
           });
-          return true; // Keep channel open for async response
+          return true; // 保持通道开放以进行异步响应
         }
       }
 
       simulateKeyboard(request.keys, targetEl, request.delay)
         .then(sendResponse)
         .catch((error) => {
-          // This catch is for unexpected errors in simulateKeyboard promise chain itself
-          console.error('Unexpected error in simulateKeyboard promise chain:', error);
+          // 此 catch 用于 simulateKeyboard promise 链本身的意外错误
+          console.error('simulateKeyboard promise 链中的意外错误:', error);
           sendResponse({
             success: false,
-            error: `Unexpected error during keyboard simulation: ${error.message}`,
+            error: `键盘模拟期间的意外错误: ${error.message}`,
             results: [],
           });
         });
-      return true; // Indicates async response is expected
+      return true; // 表示期望异步响应
     } else if (request.action === 'chrome_keyboard_ping') {
-      sendResponse({ status: 'pong', initialized: true }); // Respond that it's initialized
-      return false; // Synchronous response
+      sendResponse({ status: 'pong', initialized: true }); // 响应已初始化
+      return false; // 同步响应
     }
-    // Not our message, or no async response needed
+    // 不是我们的消息，或不需要异步响应
     return false;
   });
 }

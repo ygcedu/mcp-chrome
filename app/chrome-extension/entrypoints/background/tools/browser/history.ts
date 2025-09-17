@@ -25,7 +25,7 @@ interface HistoryItem {
   id: string;
   url?: string;
   title?: string;
-  lastVisitTime?: number; // Timestamp in milliseconds
+  lastVisitTime?: number; // 时间戳（毫秒）
   visitCount?: number;
   typedCount?: number;
 }
@@ -47,17 +47,17 @@ class HistoryTool extends BaseBrowserToolExecutor {
   private static readonly ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
   /**
-   * Parse a date string into milliseconds since epoch.
-   * Returns null if the date string is invalid.
-   * Supports:
-   *  - ISO date strings (e.g., "2023-10-31", "2023-10-31T14:30:00.000Z")
-   *  - Relative times: "1 day ago", "2 weeks ago", "3 months ago", "1 year ago"
-   *  - Special keywords: "now", "today", "yesterday"
+   * 将日期字符串解析为自纪元以来的毫秒数。
+   * 如果日期字符串无效则返回 null。
+   * 支持：
+   *  - ISO 日期字符串（例如，"2023-10-31"、"2023-10-31T14:30:00.000Z"）
+   *  - 相对时间："1 day ago"、"2 weeks ago"、"3 months ago"、"1 year ago"
+   *  - 特殊关键词："now"、"today"、"yesterday"
    */
   private parseDateString(dateStr: string | undefined | null): number | null {
     if (!dateStr) {
-      // If an empty or null string is passed, it might mean "no specific date",
-      // depending on how you want to treat it. Returning null is safer.
+      // 如果传递空字符串或 null，可能意味着“没有特定日期”，
+      // 具体取决于你如何处理。返回 null 更安全。
       return null;
     }
 
@@ -79,44 +79,44 @@ class HistoryTool extends BaseBrowserToolExecutor {
       else if (unit.startsWith('week')) resultDate = subWeeks(now, amount);
       else if (unit.startsWith('month')) resultDate = subMonths(now, amount);
       else if (unit.startsWith('year')) resultDate = subYears(now, amount);
-      else return null; // Should not happen with the regex
+      else return null; // 使用正则表达式时不应该发生
       return resultDate.getTime();
     }
 
-    // Try parsing as ISO or other common date string formats
-    // Native Date constructor can be unreliable for non-standard formats.
-    // date-fns' parseISO is good for ISO 8601.
-    // For other formats, date-fns' parse function is more flexible.
-    let parsedDate = parseISO(dateStr); // Handles "2023-10-31" or "2023-10-31T10:00:00"
+    // 尝试解析为 ISO 或其他常见的日期字符串格式
+    // 原生 Date 构造函数对于非标准格式可能不可靠。
+    // date-fns 的 parseISO 对 ISO 8601 很好。
+    // 对于其他格式，date-fns 的 parse 函数更灵活。
+    let parsedDate = parseISO(dateStr); // 处理 "2023-10-31" 或 "2023-10-31T10:00:00"
     if (isValid(parsedDate)) {
       return parsedDate.getTime();
     }
 
-    // Fallback to new Date() for other potential formats, but with caution
+    // 回退到 new Date() 处理其他潜在格式，但要谨慎
     parsedDate = new Date(dateStr);
     if (isValid(parsedDate) && dateStr.includes(parsedDate.getFullYear().toString())) {
       return parsedDate.getTime();
     }
 
-    console.warn(`Could not parse date string: ${dateStr}`);
+    console.warn(`无法解析日期字符串: ${dateStr}`);
     return null;
   }
 
   /**
-   * Format a timestamp as a human-readable date string
+   * 将时间戳格式化为人类可读的日期字符串
    */
   private formatDate(timestamp: number): string {
-    // Using date-fns for consistent and potentially localized formatting
+    // 使用 date-fns 进行一致且可能本地化的格式化
     return format(timestamp, 'yyyy-MM-dd HH:mm:ss');
   }
 
   async execute(args: HistoryToolParams): Promise<ToolResult> {
     try {
-      console.log('Executing HistoryTool with args:', args);
+      console.log('执行 HistoryTool，参数:', args);
 
       const {
         text = '',
-        maxResults = 100, // Default to 100 results
+        maxResults = 100, // 默认 100 个结果
         excludeCurrentTabs = false,
       } = args;
 
@@ -124,41 +124,41 @@ class HistoryTool extends BaseBrowserToolExecutor {
       let startTimeMs: number;
       let endTimeMs: number;
 
-      // Parse startTime
+      // 解析开始时间
       if (args.startTime) {
         const parsedStart = this.parseDateString(args.startTime);
         if (parsedStart === null) {
           return createErrorResponse(
-            `Invalid format for start time: "${args.startTime}". Supported formats: ISO (YYYY-MM-DD), "today", "yesterday", "X days/weeks/months/years ago".`,
+            `开始时间格式无效: "${args.startTime}"。支持的格式: ISO (YYYY-MM-DD)、"today"、"yesterday"、"X days/weeks/months/years ago"。`,
           );
         }
         startTimeMs = parsedStart;
       } else {
-        // Default to 24 hours ago if startTime is not provided
+        // 如果未提供开始时间，默认为 24 小时前
         startTimeMs = now - HistoryTool.ONE_DAY_MS;
       }
 
-      // Parse endTime
+      // 解析结束时间
       if (args.endTime) {
         const parsedEnd = this.parseDateString(args.endTime);
         if (parsedEnd === null) {
           return createErrorResponse(
-            `Invalid format for end time: "${args.endTime}". Supported formats: ISO (YYYY-MM-DD), "today", "yesterday", "X days/weeks/months/years ago".`,
+            `结束时间格式无效: "${args.endTime}"。支持的格式: ISO (YYYY-MM-DD)、"today"、"yesterday"、"X days/weeks/months/years ago"。`,
           );
         }
         endTimeMs = parsedEnd;
       } else {
-        // Default to current time if endTime is not provided
+        // 如果未提供结束时间，默认为当前时间
         endTimeMs = now;
       }
 
-      // Validate time range
+      // 验证时间范围
       if (startTimeMs > endTimeMs) {
-        return createErrorResponse('Start time cannot be after end time.');
+        return createErrorResponse('开始时间不能晚于结束时间。');
       }
 
       console.log(
-        `Searching history from ${this.formatDate(startTimeMs)} to ${this.formatDate(endTimeMs)} for query "${text}"`,
+        `搜索历史记录，时间范围从 ${this.formatDate(startTimeMs)} 到 ${this.formatDate(endTimeMs)}，查询 "${text}"`,
       );
 
       const historyItems = await chrome.history.search({
@@ -168,7 +168,7 @@ class HistoryTool extends BaseBrowserToolExecutor {
         maxResults,
       });
 
-      console.log(`Found ${historyItems.length} history items before filtering current tabs.`);
+      console.log(`在过滤当前标签页之前找到 ${historyItems.length} 个历史项目。`);
 
       let filteredItems = historyItems;
       if (excludeCurrentTabs && historyItems.length > 0) {
@@ -184,7 +184,7 @@ class HistoryTool extends BaseBrowserToolExecutor {
         if (openUrls.size > 0) {
           filteredItems = historyItems.filter((item) => !(item.url && openUrls.has(item.url)));
           console.log(
-            `Filtered out ${historyItems.length - filteredItems.length} items that are currently open. ${filteredItems.length} items remaining.`,
+            `过滤掉 ${historyItems.length - filteredItems.length} 个当前打开的项目。剩余 ${filteredItems.length} 个项目。`,
           );
         }
       }
@@ -221,9 +221,9 @@ class HistoryTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error in HistoryTool.execute:', error);
+      console.error('HistoryTool.execute 中出错:', error);
       return createErrorResponse(
-        `Error retrieving browsing history: ${error instanceof Error ? error.message : String(error)}`,
+        `检索浏览历史时出错: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

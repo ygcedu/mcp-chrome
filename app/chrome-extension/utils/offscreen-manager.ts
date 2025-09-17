@@ -1,6 +1,6 @@
 /**
- * Offscreen Document manager
- * Ensures only one offscreen document is created across the entire extension to avoid conflicts
+ * 离屏文档管理器
+ * 确保在整个扩展中只创建一个离屏文档以避免冲突
  */
 
 export class OffscreenManager {
@@ -12,7 +12,7 @@ export class OffscreenManager {
   private constructor() {}
 
   /**
-   * Get singleton instance
+   * 获取单例实例
    */
   public static getInstance(): OffscreenManager {
     if (!OffscreenManager.instance) {
@@ -22,7 +22,7 @@ export class OffscreenManager {
   }
 
   /**
-   * Ensure offscreen document exists
+   * 确保离屏文档存在
    */
   public async ensureOffscreenDocument(): Promise<void> {
     if (this.isCreated) {
@@ -44,7 +44,7 @@ export class OffscreenManager {
   private async _doCreateOffscreenDocument(): Promise<void> {
     try {
       if (!chrome.offscreen) {
-        throw new Error('Offscreen API not available. Chrome 109+ required.');
+        throw new Error('离屏 API 不可用。需要 Chrome 109+ 版本。');
       }
 
       const existingContexts = await (chrome.runtime as any).getContexts({
@@ -52,7 +52,7 @@ export class OffscreenManager {
       });
 
       if (existingContexts && existingContexts.length > 0) {
-        console.log('OffscreenManager: Offscreen document already exists');
+        console.log('离屏管理器: 离屏文档已存在');
         this.isCreated = true;
         return;
       }
@@ -60,42 +60,42 @@ export class OffscreenManager {
       await chrome.offscreen.createDocument({
         url: 'offscreen.html',
         reasons: ['WORKERS'],
-        justification: 'Need to run semantic similarity engine with workers',
+        justification: '需要使用workers运行语义相似度引擎',
       });
 
       this.isCreated = true;
-      console.log('OffscreenManager: Offscreen document created successfully');
+      console.log('离屏管理器: 离屏文档创建成功');
     } catch (error) {
-      console.error('OffscreenManager: Failed to create offscreen document:', error);
+      console.error('离屏管理器: 创建离屏文档失败:', error);
       this.isCreated = false;
       throw error;
     }
   }
 
   /**
-   * Check if offscreen document is created
+   * 检查离屏文档是否已创建
    */
   public isOffscreenDocumentCreated(): boolean {
     return this.isCreated;
   }
 
   /**
-   * Close offscreen document
+   * 关闭离屏文档
    */
   public async closeOffscreenDocument(): Promise<void> {
     try {
       if (chrome.offscreen && this.isCreated) {
         await chrome.offscreen.closeDocument();
         this.isCreated = false;
-        console.log('OffscreenManager: Offscreen document closed');
+        console.log('离屏管理器: 离屏文档已关闭');
       }
     } catch (error) {
-      console.error('OffscreenManager: Failed to close offscreen document:', error);
+      console.error('离屏管理器: 关闭离屏文档失败:', error);
     }
   }
 
   /**
-   * Reset state (for testing)
+   * 重置状态（用于测试）
    */
   public reset(): void {
     this.isCreated = false;
@@ -103,6 +103,5 @@ export class OffscreenManager {
     this.createPromise = null;
   }
 }
-
 
 export const offscreenManager = OffscreenManager.getInstance();

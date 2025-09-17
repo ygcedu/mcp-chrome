@@ -52,7 +52,7 @@ interface CacheStats {
 }
 
 const App: React.FC = () => {
-  // Connection and server state
+  // 连接与服务状态
   const [nativeConnectionStatus, setNativeConnectionStatus] = useState<
     'unknown' | 'connected' | 'disconnected'
   >('unknown');
@@ -64,7 +64,7 @@ const App: React.FC = () => {
   });
   const [copyButtonText, setCopyButtonText] = useState('复制配置');
 
-  // Model state
+  // 模型状态
   const [currentModel, setCurrentModel] = useState<ModelPreset | null>(null);
   const [isModelSwitching, setIsModelSwitching] = useState(false);
   const [modelSwitchProgress, setModelSwitchProgress] = useState('');
@@ -76,7 +76,7 @@ const App: React.FC = () => {
   const [modelErrorMessage, setModelErrorMessage] = useState<string>('');
   const [modelErrorType, setModelErrorType] = useState<'network' | 'file' | 'unknown' | ''>('');
 
-  // Semantic engine state
+  // 语义引擎状态
   const [semanticEngineStatus, setSemanticEngineStatus] = useState<
     'idle' | 'initializing' | 'ready' | 'error'
   >('idle');
@@ -84,7 +84,7 @@ const App: React.FC = () => {
   const [semanticEngineInitProgress, setSemanticEngineInitProgress] = useState('');
   const [semanticEngineLastUpdated, setSemanticEngineLastUpdated] = useState<number | null>(null);
 
-  // Storage and cache state
+  // 存储与缓存状态
   const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
   const [isRefreshingStats, setIsRefreshingStats] = useState(false);
   const [isClearingData, setIsClearingData] = useState(false);
@@ -93,14 +93,14 @@ const App: React.FC = () => {
   const [isManagingCache, setIsManagingCache] = useState(false);
   const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
 
-  // Intervals
+  // 定时器
   const [statusMonitoringInterval, setStatusMonitoringInterval] = useState<NodeJS.Timeout | null>(
     null,
   );
   const [semanticEngineStatusPollingInterval, setSemanticEngineStatusPollingInterval] =
     useState<NodeJS.Timeout | null>(null);
 
-  // Computed values
+  // 计算属性
   const showMcpConfig = useMemo(() => {
     return nativeConnectionStatus === 'connected' && serverStatus.isRunning;
   }, [nativeConnectionStatus, serverStatus.isRunning]);
@@ -125,7 +125,7 @@ const App: React.FC = () => {
     }));
   }, []);
 
-  // Helper functions
+  // 辅助函数
   const getStatusClass = () => {
     if (nativeConnectionStatus === 'connected') {
       if (serverStatus.isRunning) {
@@ -251,7 +251,7 @@ const App: React.FC = () => {
     }
   };
 
-  // Storage functions
+  // 存储相关函数
   const saveSemanticEngineState = async () => {
     try {
       const semanticEngineState = {
@@ -303,7 +303,7 @@ const App: React.FC = () => {
     }
   };
 
-  // Load functions
+  // 加载相关函数
   const loadPortPreference = async () => {
     try {
       const result = await chrome.storage.local.get(['nativeServerPort']);
@@ -390,12 +390,12 @@ const App: React.FC = () => {
       const stats = await getCacheStats();
       setCacheStats(stats);
     } catch (error) {
-      console.error('Failed to get cache stats:', error);
+      console.error('获取缓存统计信息失败:', error);
       setCacheStats(null);
     }
   };
 
-  // Network functions
+  // 网络相关函数
   const checkNativeConnection = async () => {
     try {
       const response = await chrome.runtime.sendMessage({ type: 'ping_native' });
@@ -489,7 +489,7 @@ const App: React.FC = () => {
         await saveSemanticEngineState();
       }
     } catch (error) {
-      console.error('Popup: Failed to check semantic engine status:', error);
+      console.error('弹窗：检查语义引擎状态失败:', error);
       setSemanticEngineStatus('idle');
       setIsSemanticEngineInitializing(false);
       await saveSemanticEngineState();
@@ -501,7 +501,7 @@ const App: React.FC = () => {
 
     setIsRefreshingStats(true);
     try {
-      console.log('🔄 Refreshing storage statistics...');
+      console.log('🔄 正在刷新存储统计信息...');
 
       const response = await chrome.runtime.sendMessage({
         type: 'get_storage_stats',
@@ -515,9 +515,9 @@ const App: React.FC = () => {
           indexSize: response.stats.indexSize || 0,
           isInitialized: response.stats.isInitialized || false,
         });
-        console.log('✅ Storage stats refreshed:', response.stats);
+        console.log('✅ 存储统计信息已刷新:', response.stats);
       } else {
-        console.error('❌ Failed to get storage stats:', response?.error);
+        console.error('❌ 获取存储统计信息失败:', response?.error);
         setStorageStats({
           indexedPages: 0,
           totalDocuments: 0,
@@ -527,7 +527,7 @@ const App: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('❌ Error refreshing storage stats:', error);
+      console.error('❌ 刷新存储统计信息时出错:', error);
       setStorageStats({
         indexedPages: 0,
         totalDocuments: 0,
@@ -599,9 +599,7 @@ const App: React.FC = () => {
     if (isSemanticEngineInitializing) return;
 
     const isReinitialization = semanticEngineStatus === 'ready';
-    console.log(
-      `🚀 User triggered semantic engine ${isReinitialization ? 'reinitialization' : 'initialization'}`,
-    );
+    console.log(`🚀 用户触发语义引擎${isReinitialization ? '重新初始化' : '初始化'}`);
 
     setIsSemanticEngineInitializing(true);
     setSemanticEngineStatus('initializing');
@@ -618,14 +616,14 @@ const App: React.FC = () => {
           type: BACKGROUND_MESSAGE_TYPES.INITIALIZE_SEMANTIC_ENGINE,
         })
         .catch((error) => {
-          console.error('❌ Error sending semantic engine initialization request:', error);
+          console.error('❌ 发送语义引擎初始化请求失败:', error);
         });
 
       startSemanticEngineStatusPolling();
 
       setSemanticEngineInitProgress(isReinitialization ? '处理中...' : '处理中...');
     } catch (error: any) {
-      console.error('❌ Failed to send initialization request:', error);
+      console.error('❌ 发送初始化请求失败:', error);
       setSemanticEngineStatus('error');
       setSemanticEngineInitProgress(
         `Failed to send initialization request: ${error?.message || 'Unknown error'}`,
@@ -646,7 +644,7 @@ const App: React.FC = () => {
   const handleRetryModelInitialization = async () => {
     if (!currentModel) return;
 
-    console.log('🔄 Retrying model initialization...');
+    console.log('🔄 正在重试模型初始化...');
 
     setModelErrorMessage('');
     setModelErrorType('');
@@ -657,10 +655,10 @@ const App: React.FC = () => {
   };
 
   const handleSwitchModel = async (newModel: ModelPreset) => {
-    console.log(`🔄 switchModel called with newModel: ${newModel}`);
+    console.log(`🔄 调用 switchModel，参数 newModel: ${newModel}`);
 
     if (isModelSwitching) {
-      console.log('⏸️ Model switch already in progress, skipping');
+      console.log('⏸️ 模型切换正在进行中，跳过');
       return;
     }
 
@@ -671,25 +669,23 @@ const App: React.FC = () => {
     const newModelInfo = getModelInfo(newModel);
     const isDifferentDimension = currentModelInfo.dimension !== newModelInfo.dimension;
 
-    console.log(`📊 Switch analysis:`);
-    console.log(`   - Same model: ${isSameModel} (${currentModel} -> ${newModel})`);
-    console.log(
-      `   - Current dimension: ${currentModelInfo.dimension}, New dimension: ${newModelInfo.dimension}`,
-    );
-    console.log(`   - Different dimension: ${isDifferentDimension}`);
+    console.log(`📊 切换分析:`);
+    console.log(`   - 模型相同: ${isSameModel} (${currentModel} -> ${newModel})`);
+    console.log(`   - 当前维度: ${currentModelInfo.dimension}, 新维度: ${newModelInfo.dimension}`);
+    console.log(`   - 维度不同: ${isDifferentDimension}`);
 
     if (isSameModel && !isDifferentDimension) {
-      console.log('✅ Same model and dimension - no need to switch');
+      console.log('✅ 模型和维度相同——无需切换');
       return;
     }
 
     const switchReasons = [];
-    if (!isSameModel) switchReasons.push('different model');
-    if (isDifferentDimension) switchReasons.push('different dimension');
+    if (!isSameModel) switchReasons.push('模型不同');
+    if (isDifferentDimension) switchReasons.push('维度不同');
 
-    console.log(`🚀 Switching model due to: ${switchReasons.join(', ')}`);
+    console.log(`🚀 切换模型原因: ${switchReasons.join(', ')}`);
     console.log(
-      `📋 Model: ${currentModel} (${currentModelInfo.dimension}D) -> ${newModel} (${newModelInfo.dimension}D)`,
+      `📋 模型: ${currentModel} (${currentModelInfo.dimension}D) -> ${newModel} (${newModelInfo.dimension}D)`,
     );
 
     setIsModelSwitching(true);
@@ -781,7 +777,7 @@ const App: React.FC = () => {
     setClearDataProgress('清空中...');
 
     try {
-      console.log('🗑️ Starting to clear all data...');
+      console.log('🗑️ 开始清空所有数据...');
 
       const response = await chrome.runtime.sendMessage({
         type: 'clear_all_data',
@@ -789,7 +785,7 @@ const App: React.FC = () => {
 
       if (response && response.success) {
         setClearDataProgress('数据清空成功');
-        console.log('✅ All data cleared successfully');
+        console.log('✅ 所有数据已成功清空');
 
         await refreshStorageStats();
 
@@ -801,7 +797,7 @@ const App: React.FC = () => {
         throw new Error(response?.error || 'Failed to clear data');
       }
     } catch (error: any) {
-      console.error('❌ Failed to clear all data:', error);
+      console.error('❌ 清空所有数据失败:', error);
       setClearDataProgress(`Failed to clear data: ${error?.message || 'Unknown error'}`);
 
       setTimeout(() => {
@@ -820,7 +816,7 @@ const App: React.FC = () => {
       await cleanupModelCache();
       await loadCacheStats();
     } catch (error) {
-      console.error('Failed to cleanup cache:', error);
+      console.error('清理缓存失败:', error);
     } finally {
       setIsManagingCache(false);
     }
@@ -834,13 +830,13 @@ const App: React.FC = () => {
       await clearModelCache();
       await loadCacheStats();
     } catch (error) {
-      console.error('Failed to clear cache:', error);
+      console.error('清空缓存失败:', error);
     } finally {
       setIsManagingCache(false);
     }
   };
 
-  // Monitoring functions
+  // 监控相关函数
   const startModelStatusMonitoring = () => {
     if (statusMonitoringInterval) {
       clearInterval(statusMonitoringInterval);
@@ -896,7 +892,7 @@ const App: React.FC = () => {
       try {
         await checkSemanticEngineStatus();
       } catch (error) {
-        console.error('Semantic engine status polling failed:', error);
+        console.error('语义引擎状态轮询失败:', error);
       }
     }, 2000);
 
@@ -910,17 +906,17 @@ const App: React.FC = () => {
     }
   };
 
-  // Setup server status listener
+  // 设置服务器状态监听器
   const setupServerStatusListener = useCallback(() => {
     chrome.runtime.onMessage.addListener((message) => {
       if (message.type === BACKGROUND_MESSAGE_TYPES.SERVER_STATUS_CHANGED && message.payload) {
         setServerStatus(message.payload);
-        console.log('Server status updated:', message.payload);
+        console.log('服务器状态已更新:', message.payload);
       }
     });
   }, []);
 
-  // Effects
+  // 副作用
   useEffect(() => {
     const initializeApp = async () => {
       await loadPortPreference();
@@ -941,7 +937,7 @@ const App: React.FC = () => {
     };
   }, [setupServerStatusListener]);
 
-  // Update semantic engine state when status changes
+  // 当语义引擎状态变化时更新存储状态
   useEffect(() => {
     saveSemanticEngineState();
   }, [semanticEngineStatus, semanticEngineLastUpdated]);
@@ -1184,7 +1180,7 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        {/* Model Cache Management Section */}
+        {/* 模型缓存管理区块 */}
         <ModelCacheManagement
           cacheStats={cacheStats}
           isManagingCache={isManagingCache}

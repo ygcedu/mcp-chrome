@@ -3,7 +3,7 @@ import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from 'chrome-mcp-shared';
 import { LIMITS, NETWORK_FILTERS } from '@/common/constants';
 
-// Static resource file extensions
+// 静态资源文件扩展名
 const STATIC_RESOURCE_EXTENSIONS = [
   '.jpg',
   '.jpeg',
@@ -12,19 +12,19 @@ const STATIC_RESOURCE_EXTENSIONS = [
   '.svg',
   '.webp',
   '.ico',
-  '.bmp', // Images
+  '.bmp', // 图像
   '.css',
   '.scss',
-  '.less', // Styles
+  '.less', // 样式
   '.js',
   '.jsx',
   '.ts',
-  '.tsx', // Scripts
+  '.tsx', // 脚本
   '.woff',
   '.woff2',
   '.ttf',
   '.eot',
-  '.otf', // Fonts
+  '.otf', // 字体
   '.mp3',
   '.mp4',
   '.avi',
@@ -32,24 +32,24 @@ const STATIC_RESOURCE_EXTENSIONS = [
   '.wmv',
   '.flv',
   '.ogg',
-  '.wav', // Media
+  '.wav', // 媒体
   '.pdf',
   '.doc',
   '.docx',
   '.xls',
   '.xlsx',
   '.ppt',
-  '.pptx', // Documents
+  '.pptx', // 文档
 ];
 
-// Ad and analytics domain list
+// 广告和分析域名列表
 const AD_ANALYTICS_DOMAINS = NETWORK_FILTERS.EXCLUDED_DOMAINS;
 
 interface NetworkCaptureStartToolParams {
-  url?: string; // URL to navigate to or focus. If not provided, uses active tab.
-  maxCaptureTime?: number; // Maximum capture time (milliseconds)
-  inactivityTimeout?: number; // Inactivity timeout (milliseconds)
-  includeStatic?: boolean; // Whether to include static resources
+  url?: string; // 要导航到或聚焦的URL。如果未提供，使用活动标签页。
+  maxCaptureTime?: number; // 最大捕获时间（毫秒）
+  inactivityTimeout?: number; // 非活动超时（毫秒）
+  includeStatic?: boolean; // 是否包含静态资源
 }
 
 interface NetworkRequestInfo {
@@ -70,7 +70,7 @@ interface NetworkRequestInfo {
   errorText?: string;
   specificRequestHeaders?: Record<string, string>;
   specificResponseHeaders?: Record<string, string>;
-  mimeType?: string; // Response MIME type
+  mimeType?: string; // 响应MIME类型
 }
 
 interface CaptureInfo {
@@ -83,39 +83,39 @@ interface CaptureInfo {
   maxCaptureTime: number;
   inactivityTimeout: number;
   includeStatic: boolean;
-  limitReached?: boolean; // Whether request count limit is reached
+  limitReached?: boolean; // 是否达到请求计数限制
 }
 
 /**
- * Network Capture Start Tool V2 - Uses Chrome webRequest API to start capturing network requests
+ * 网络捕获启动工具V2 - 使用Chrome webRequest API开始捕获网络请求
  */
 class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.NETWORK_CAPTURE_START;
   public static instance: NetworkCaptureStartTool | null = null;
-  public captureData: Map<number, CaptureInfo> = new Map(); // tabId -> capture data
-  private captureTimers: Map<number, NodeJS.Timeout> = new Map(); // tabId -> max capture timer
-  private inactivityTimers: Map<number, NodeJS.Timeout> = new Map(); // tabId -> inactivity timer
-  private lastActivityTime: Map<number, number> = new Map(); // tabId -> timestamp of last activity
-  private requestCounters: Map<number, number> = new Map(); // tabId -> count of captured requests
-  public static MAX_REQUESTS_PER_CAPTURE = LIMITS.MAX_NETWORK_REQUESTS; // Maximum capture request count
+  public captureData: Map<number, CaptureInfo> = new Map(); // tabId -> 捕获数据
+  private captureTimers: Map<number, NodeJS.Timeout> = new Map(); // tabId -> 最大捕获计时器
+  private inactivityTimers: Map<number, NodeJS.Timeout> = new Map(); // tabId -> 非活动计时器
+  private lastActivityTime: Map<number, number> = new Map(); // tabId -> 最后活动的时间戳
+  private requestCounters: Map<number, number> = new Map(); // tabId -> 捕获请求的计数
+  public static MAX_REQUESTS_PER_CAPTURE = LIMITS.MAX_NETWORK_REQUESTS; // 最大捕获请求计数
   private listeners: { [key: string]: (details: any) => void } = {};
 
-  // Static resource MIME types list (for filtering)
+  // 静态资源MIME类型列表（用于过滤）
   private static STATIC_MIME_TYPES_TO_FILTER = [
-    'image/', // All image types
-    'font/', // All font types
-    'audio/', // All audio types
-    'video/', // All video types
+    'image/', // 所有图像类型
+    'font/', // 所有字体类型
+    'audio/', // 所有音频类型
+    'video/', // 所有视频类型
     'text/css',
     'text/javascript',
     'application/javascript',
     'application/x-javascript',
     'application/pdf',
     'application/zip',
-    'application/octet-stream', // Usually for downloads or generic binary data
+    'application/octet-stream', // 通常用于下载或通用二进制数据
   ];
 
-  // API response MIME types list (these types are usually not filtered)
+  // API响应MIME类型列表（这些类型通常不被过滤）
   private static API_MIME_TYPES = [
     'application/json',
     'application/xml',
@@ -140,121 +140,121 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
     }
     NetworkCaptureStartTool.instance = this;
 
-    // Listen for tab close events
+    // 监听标签页关闭事件
     chrome.tabs.onRemoved.addListener(this.handleTabRemoved.bind(this));
-    // Listen for tab creation events
+    // 监听标签页创建事件
     chrome.tabs.onCreated.addListener(this.handleTabCreated.bind(this));
   }
 
   /**
-   * Handle tab close events
+   * 处理标签页关闭事件
    */
   private handleTabRemoved(tabId: number) {
     if (this.captureData.has(tabId)) {
-      console.log(`NetworkCaptureV2: Tab ${tabId} was closed, cleaning up resources.`);
+      console.log(`网络捕获V2: 标签页 ${tabId} 已关闭，清理资源。`);
       this.cleanupCapture(tabId);
     }
   }
 
   /**
-   * Handle tab creation events
-   * If a new tab is opened from a tab being captured, automatically start capturing the new tab's requests
+   * 处理标签页创建事件
+   * 如果从正在捕获的标签页打开新标签页，自动开始捕获新标签页的请求
    */
   private async handleTabCreated(tab: chrome.tabs.Tab) {
     try {
-      // Check if there are any tabs currently capturing
+      // 检查是否有任何标签页正在捕获
       if (this.captureData.size === 0) return;
 
-      // Get the openerTabId of the new tab (ID of the tab that opened this tab)
+      // 获取新标签页的openerTabId（打开此标签页的标签页ID）
       const openerTabId = tab.openerTabId;
       if (!openerTabId) return;
 
-      // Check if the opener tab is currently capturing
+      // 检查打开者标签页是否正在捕获
       if (!this.captureData.has(openerTabId)) return;
 
-      // Get the new tab's ID
+      // 获取新标签页的ID
       const newTabId = tab.id;
       if (!newTabId) return;
 
       console.log(
-        `NetworkCaptureV2: New tab ${newTabId} created from capturing tab ${openerTabId}, will extend capture to it.`,
+        `网络捕获V2: 从捕获标签页 ${openerTabId} 创建了新标签页 ${newTabId}，将扩展捕获到它。`,
       );
 
-      // Get the opener tab's capture settings
+      // 获取打开者标签页的捕获设置
       const openerCaptureInfo = this.captureData.get(openerTabId);
       if (!openerCaptureInfo) return;
 
-      // Wait a short time to ensure the tab is ready
+      // 等待一小段时间以确保标签页准备就绪
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Start capturing requests for the new tab
+      // 开始为新标签页捕获请求
       await this.startCaptureForTab(newTabId, {
         maxCaptureTime: openerCaptureInfo.maxCaptureTime,
         inactivityTimeout: openerCaptureInfo.inactivityTimeout,
         includeStatic: openerCaptureInfo.includeStatic,
       });
 
-      console.log(`NetworkCaptureV2: Successfully extended capture to new tab ${newTabId}`);
+      console.log(`网络捕获V2: 成功扩展捕获到新标签页 ${newTabId}`);
     } catch (error) {
-      console.error(`NetworkCaptureV2: Error extending capture to new tab:`, error);
+      console.error(`网络捕获V2: 扩展捕获到新标签页时出错:`, error);
     }
   }
 
   /**
-   * Determine whether a request should be filtered (based on URL)
+   * 确定是否应该过滤请求（基于URL）
    */
   private shouldFilterRequest(url: string, includeStatic: boolean): boolean {
     try {
       const urlObj = new URL(url);
 
-      // Check if it's an ad or analytics domain
+      // 检查是否是广告或分析域名
       if (AD_ANALYTICS_DOMAINS.some((domain) => urlObj.hostname.includes(domain))) {
-        console.log(`NetworkCaptureV2: Filtering ad/analytics domain: ${urlObj.hostname}`);
+        console.log(`网络捕获V2: 过滤广告/分析域名: ${urlObj.hostname}`);
         return true;
       }
 
-      // If not including static resources, check extensions
+      // 如果不包含静态资源，检查扩展名
       if (!includeStatic) {
         const path = urlObj.pathname.toLowerCase();
         if (STATIC_RESOURCE_EXTENSIONS.some((ext) => path.endsWith(ext))) {
-          console.log(`NetworkCaptureV2: Filtering static resource by extension: ${path}`);
+          console.log(`网络捕获V2: 按扩展名过滤静态资源: ${path}`);
           return true;
         }
       }
 
       return false;
     } catch (e) {
-      console.error('NetworkCaptureV2: Error filtering URL:', e);
+      console.error('网络捕获V2: 过滤URL时出错:', e);
       return false;
     }
   }
 
   /**
-   * Filter based on MIME type
+   * 基于MIME类型过滤
    */
   private shouldFilterByMimeType(mimeType: string, includeStatic: boolean): boolean {
     if (!mimeType) return false;
 
-    // Always keep API response types
+    // 始终保留API响应类型
     if (NetworkCaptureStartTool.API_MIME_TYPES.some((type) => mimeType.startsWith(type))) {
       return false;
     }
 
-    // If not including static resources, filter out static resource MIME types
+    // 如果不包含静态资源，过滤掉静态资源MIME类型
     if (!includeStatic) {
-      // Filter static resource MIME types
+      // 过滤静态资源MIME类型
       if (
         NetworkCaptureStartTool.STATIC_MIME_TYPES_TO_FILTER.some((type) =>
           mimeType.startsWith(type),
         )
       ) {
-        console.log(`NetworkCaptureV2: Filtering static resource by MIME type: ${mimeType}`);
+        console.log(`网络捕获V2: 按MIME类型过滤静态资源: ${mimeType}`);
         return true;
       }
 
-      // Filter all MIME types starting with text/ (except those already in API_MIME_TYPES)
+      // 过滤所有以text/开头的MIME类型（除了已在API_MIME_TYPES中的）
       if (mimeType.startsWith('text/')) {
-        console.log(`NetworkCaptureV2: Filtering text response: ${mimeType}`);
+        console.log(`网络捕获V2: 过滤文本响应: ${mimeType}`);
         return true;
       }
     }
@@ -263,7 +263,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   }
 
   /**
-   * Update last activity time and reset inactivity timer
+   * 更新最后活动时间并重置非活动计时器
    */
   private updateLastActivityTime(tabId: number): void {
     const captureInfo = this.captureData.get(tabId);
@@ -271,7 +271,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
 
     this.lastActivityTime.set(tabId, Date.now());
 
-    // Reset inactivity timer
+    // 重置非活动计时器
     if (this.inactivityTimers.has(tabId)) {
       clearTimeout(this.inactivityTimers.get(tabId)!);
     }
@@ -285,7 +285,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   }
 
   /**
-   * Check for inactivity
+   * 检查非活动状态
    */
   private checkInactivity(tabId: number): void {
     const captureInfo = this.captureData.get(tabId);
@@ -296,12 +296,10 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
     const inactiveTime = now - lastActivity;
 
     if (inactiveTime >= captureInfo.inactivityTimeout) {
-      console.log(
-        `NetworkCaptureV2: No activity for ${inactiveTime}ms, stopping capture for tab ${tabId}`,
-      );
+      console.log(`网络捕获V2: 无活动 ${inactiveTime}ms，停止标签页 ${tabId} 的捕获`);
       this.stopCaptureByInactivity(tabId);
     } else {
-      // If inactivity time hasn't been reached yet, continue checking
+      // 如果尚未达到非活动时间，继续检查
       const remainingTime = captureInfo.inactivityTimeout - inactiveTime;
       this.inactivityTimers.set(
         tabId,
@@ -311,21 +309,21 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   }
 
   /**
-   * Stop capture due to inactivity
+   * 由于非活动停止捕获
    */
   private async stopCaptureByInactivity(tabId: number): Promise<void> {
     const captureInfo = this.captureData.get(tabId);
     if (!captureInfo) return;
 
-    console.log(`NetworkCaptureV2: Stopping capture due to inactivity for tab ${tabId}`);
+    console.log(`网络捕获V2: 由于非活动停止标签页 ${tabId} 的捕获`);
     await this.stopCapture(tabId);
   }
 
   /**
-   * Clean up capture resources
+   * 清理捕获资源
    */
   private cleanupCapture(tabId: number): void {
-    // Clear timers
+    // 清除计时器
     if (this.captureTimers.has(tabId)) {
       clearTimeout(this.captureTimers.get(tabId)!);
       this.captureTimers.delete(tabId);
@@ -336,19 +334,19 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       this.inactivityTimers.delete(tabId);
     }
 
-    // Remove data
+    // 移除数据
     this.lastActivityTime.delete(tabId);
     this.captureData.delete(tabId);
     this.requestCounters.delete(tabId);
 
-    console.log(`NetworkCaptureV2: Cleaned up all resources for tab ${tabId}`);
+    console.log(`网络捕获V2: 已清理标签页 ${tabId} 的所有资源`);
   }
 
   /**
-   * Set up request listeners
+   * 设置请求监听器
    */
   private setupListeners(): void {
-    // Before request is sent
+    // 发送请求之前
     this.listeners.onBeforeRequest = (details: chrome.webRequest.WebRequestBodyDetails) => {
       const captureInfo = this.captureData.get(details.tabId);
       if (!captureInfo) return;
@@ -360,7 +358,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       const currentCount = this.requestCounters.get(details.tabId) || 0;
       if (currentCount >= NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE) {
         console.log(
-          `NetworkCaptureV2: Request limit (${NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE}) reached for tab ${details.tabId}, ignoring new request: ${details.url}`,
+          `网络捕获V2: 标签页 ${details.tabId} 达到请求限制 (${NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE})，忽略新请求: ${details.url}`,
         );
         captureInfo.limitReached = true;
         return;
@@ -386,12 +384,12 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         }
 
         console.log(
-          `NetworkCaptureV2: Captured request ${currentCount + 1}/${NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE} for tab ${details.tabId}: ${details.method} ${details.url}`,
+          `网络捕获V2: 为标签页 ${details.tabId} 捕获请求 ${currentCount + 1}/${NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE}: ${details.method} ${details.url}`,
         );
       }
     };
 
-    // Send request headers
+    // 发送请求头
     this.listeners.onSendHeaders = (details: chrome.webRequest.WebRequestHeadersDetails) => {
       const captureInfo = this.captureData.get(details.tabId);
       if (!captureInfo || !captureInfo.requests[details.requestId]) return;
@@ -405,7 +403,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       }
     };
 
-    // Receive response headers
+    // 接收响应头
     this.listeners.onHeadersReceived = (details: chrome.webRequest.WebResponseHeadersDetails) => {
       const captureInfo = this.captureData.get(details.tabId);
       if (!captureInfo || !captureInfo.requests[details.requestId]) return;
@@ -419,7 +417,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         (h) => h.name.toLowerCase() === 'content-type',
       )?.value;
 
-      // Secondary filtering based on MIME type
+      // 基于MIME类型的二次过滤
       if (
         requestInfo.mimeType &&
         this.shouldFilterByMimeType(requestInfo.mimeType, captureInfo.includeStatic)
@@ -431,9 +429,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
           this.requestCounters.set(details.tabId, currentCount - 1);
         }
 
-        console.log(
-          `NetworkCaptureV2: Filtered request by MIME type (${requestInfo.mimeType}): ${requestInfo.url}`,
-        );
+        console.log(`网络捕获V2: 按MIME类型过滤请求 (${requestInfo.mimeType}): ${requestInfo.url}`);
         return;
       }
 
@@ -448,7 +444,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       this.updateLastActivityTime(details.tabId);
     };
 
-    // Request completed
+    // 请求完成
     this.listeners.onCompleted = (details: chrome.webRequest.WebResponseCacheDetails) => {
       const captureInfo = this.captureData.get(details.tabId);
       if (!captureInfo || !captureInfo.requests[details.requestId]) return;
@@ -461,7 +457,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       this.updateLastActivityTime(details.tabId);
     };
 
-    // Request failed
+    // 请求失败
     this.listeners.onErrorOccurred = (details: chrome.webRequest.WebResponseErrorDetails) => {
       const captureInfo = this.captureData.get(details.tabId);
       if (!captureInfo || !captureInfo.requests[details.requestId]) return;
@@ -472,7 +468,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       this.updateLastActivityTime(details.tabId);
     };
 
-    // Register all listeners
+    // 注册所有监听器
     chrome.webRequest.onBeforeRequest.addListener(
       this.listeners.onBeforeRequest,
       { urls: ['<all_urls>'] },
@@ -499,19 +495,17 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   }
 
   /**
-   * Remove all request listeners
-   * Only remove listeners when all tab captures have stopped
+   * 移除所有请求监听器
+   * 只有当所有标签页捕获都停止时才移除监听器
    */
   private removeListeners(): void {
-    // Don't remove listeners if there are still tabs being captured
+    // 如果仍有标签页在捕获，不要移除监听器
     if (this.captureData.size > 0) {
-      console.log(
-        `NetworkCaptureV2: Still capturing on ${this.captureData.size} tabs, not removing listeners.`,
-      );
+      console.log(`网络捕获V2: 仍在 ${this.captureData.size} 个标签页上捕获，不移除监听器。`);
       return;
     }
 
-    console.log(`NetworkCaptureV2: No more active captures, removing all listeners.`);
+    console.log(`网络捕获V2: 没有更多活动捕获，移除所有监听器。`);
 
     if (this.listeners.onBeforeRequest) {
       chrome.webRequest.onBeforeRequest.removeListener(this.listeners.onBeforeRequest);
@@ -533,16 +527,16 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       chrome.webRequest.onErrorOccurred.removeListener(this.listeners.onErrorOccurred);
     }
 
-    // Clear listener object
+    // 清除监听器对象
     this.listeners = {};
   }
 
   /**
-   * Process request body data
+   * 处理请求体数据
    */
   private processRequestBody(requestBody: chrome.webRequest.WebRequestBody): string | undefined {
     if (requestBody.raw && requestBody.raw.length > 0) {
-      return '[Binary data]';
+      return '[二进制数据]';
     } else if (requestBody.formData) {
       return JSON.stringify(requestBody.formData);
     }
@@ -550,9 +544,9 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   }
 
   /**
-   * Start network request capture for specified tab
-   * @param tabId Tab ID
-   * @param options Capture options
+   * 为指定标签页开始网络请求捕获
+   * @param tabId 标签页ID
+   * @param options 捕获选项
    */
   private async startCaptureForTab(
     tabId: number,
@@ -564,19 +558,17 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   ): Promise<void> {
     const { maxCaptureTime, inactivityTimeout, includeStatic } = options;
 
-    // If already capturing, stop first
+    // 如果已经在捕获，先停止
     if (this.captureData.has(tabId)) {
-      console.log(
-        `NetworkCaptureV2: Already capturing on tab ${tabId}. Stopping previous session.`,
-      );
+      console.log(`网络捕获V2: 标签页 ${tabId} 已在捕获。停止之前的会话。`);
       await this.stopCapture(tabId);
     }
 
     try {
-      // Get tab information
+      // 获取标签页信息
       const tab = await chrome.tabs.get(tabId);
 
-      // Initialize capture data
+      // 初始化捕获数据
       this.captureData.set(tabId, {
         tabId: tabId,
         tabUrl: tab.url || '',
@@ -589,35 +581,33 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         limitReached: false,
       });
 
-      // Initialize request counter
+      // 初始化请求计数器
       this.requestCounters.set(tabId, 0);
 
-      // Set up listeners
+      // 设置监听器
       this.setupListeners();
 
-      // Update last activity time
+      // 更新最后活动时间
       this.updateLastActivityTime(tabId);
 
       console.log(
-        `NetworkCaptureV2: Started capture for tab ${tabId} (${tab.url}). Max requests: ${NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE}, Max time: ${maxCaptureTime}ms, Inactivity: ${inactivityTimeout}ms.`,
+        `网络捕获V2: 开始为标签页 ${tabId} (${tab.url}) 捕获。最大请求数: ${NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE}，最大时间: ${maxCaptureTime}ms，非活动: ${inactivityTimeout}ms。`,
       );
 
-      // Set maximum capture time
+      // 设置最大捕获时间
       if (maxCaptureTime > 0) {
         this.captureTimers.set(
           tabId,
           setTimeout(async () => {
-            console.log(
-              `NetworkCaptureV2: Max capture time (${maxCaptureTime}ms) reached for tab ${tabId}.`,
-            );
+            console.log(`网络捕获V2: 标签页 ${tabId} 达到最大捕获时间 (${maxCaptureTime}ms)。`);
             await this.stopCapture(tabId);
           }, maxCaptureTime),
         );
       }
     } catch (error: any) {
-      console.error(`NetworkCaptureV2: Error starting capture for tab ${tabId}:`, error);
+      console.error(`网络捕获V2: 为标签页 ${tabId} 开始捕获时出错:`, error);
 
-      // Clean up resources
+      // 清理资源
       if (this.captureData.has(tabId)) {
         this.cleanupCapture(tabId);
       }
@@ -627,28 +617,28 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   }
 
   /**
-   * Stop capture
-   * @param tabId Tab ID
+   * 停止捕获
+   * @param tabId 标签页ID
    */
   public async stopCapture(
     tabId: number,
   ): Promise<{ success: boolean; message?: string; data?: any }> {
     const captureInfo = this.captureData.get(tabId);
     if (!captureInfo) {
-      console.log(`NetworkCaptureV2: No capture in progress for tab ${tabId}`);
-      return { success: false, message: `No capture in progress for tab ${tabId}` };
+      console.log(`网络捕获V2: 标签页 ${tabId} 没有正在进行的捕获`);
+      return { success: false, message: `标签页 ${tabId} 没有正在进行的捕获` };
     }
 
     try {
-      // Record end time
+      // 记录结束时间
       captureInfo.endTime = Date.now();
 
-      // Extract common request and response headers
+      // 提取公共请求和响应头
       const requestsArray = Object.values(captureInfo.requests);
       const commonRequestHeaders = this.analyzeCommonHeaders(requestsArray, 'requestHeaders');
       const commonResponseHeaders = this.analyzeCommonHeaders(requestsArray, 'responseHeaders');
 
-      // Process request data, remove common headers
+      // 处理请求数据，移除公共头
       const processedRequests = requestsArray.map((req) => {
         const finalReq: NetworkRequestInfo = { ...req };
 
@@ -675,13 +665,13 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         return finalReq;
       });
 
-      // Sort by time
+      // 按时间排序
       processedRequests.sort((a, b) => (a.requestTime || 0) - (b.requestTime || 0));
 
-      // Remove listeners
+      // 移除监听器
       this.removeListeners();
 
-      // Prepare result data
+      // 准备结果数据
       const resultData = {
         captureStartTime: captureInfo.startTime,
         captureEndTime: captureInfo.endTime,
@@ -702,7 +692,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         tabTitle: captureInfo.tabTitle,
       };
 
-      // Clean up resources
+      // 清理资源
       this.cleanupCapture(tabId);
 
       return {
@@ -710,20 +700,20 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         data: resultData,
       };
     } catch (error: any) {
-      console.error(`NetworkCaptureV2: Error stopping capture for tab ${tabId}:`, error);
+      console.error(`网络捕获V2: 停止标签页 ${tabId} 捕获时出错:`, error);
 
-      // Ensure resources are cleaned up
+      // 确保资源被清理
       this.cleanupCapture(tabId);
 
       return {
         success: false,
-        message: `Error stopping capture: ${error.message || String(error)}`,
+        message: `停止捕获时出错: ${error.message || String(error)}`,
       };
     }
   }
 
   /**
-   * Analyze common request or response headers
+   * 分析公共请求或响应头
    */
   private analyzeCommonHeaders(
     requests: NetworkRequestInfo[],
@@ -731,7 +721,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   ): Record<string, string> {
     if (!requests || requests.length === 0) return {};
 
-    // Find headers that are included in all requests
+    // 查找所有请求中都包含的头部
     const commonHeaders: Record<string, string> = {};
     const firstRequestWithHeaders = requests.find(
       (req) => req[headerType] && Object.keys(req[headerType] || {}).length > 0,
@@ -741,11 +731,11 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       return {};
     }
 
-    // Get all headers from the first request
+    // 从第一个请求获取所有头部
     const headers = firstRequestWithHeaders[headerType] as Record<string, string>;
     const headerNames = Object.keys(headers);
 
-    // Check if each header exists in all requests with the same value
+    // 检查每个头部是否在所有请求中都存在且值相同
     for (const name of headerNames) {
       const value = headers[name];
       const isCommon = requests.every((req) => {
@@ -762,7 +752,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   }
 
   /**
-   * Filter out common headers
+   * 过滤掉公共头部
    */
   private filterOutCommonHeaders(
     headers: Record<string, string>,
@@ -771,7 +761,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
     if (!headers || typeof headers !== 'object') return {};
 
     const specificHeaders: Record<string, string> = {};
-    // Use Object.keys to avoid ESLint no-prototype-builtins warning
+    // 使用Object.keys避免ESLint no-prototype-builtins警告
     Object.keys(headers).forEach((name) => {
       if (!(name in commonHeaders) || headers[name] !== commonHeaders[name]) {
         specificHeaders[name] = headers[name];
@@ -784,47 +774,47 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   async execute(args: NetworkCaptureStartToolParams): Promise<ToolResult> {
     const {
       url: targetUrl,
-      maxCaptureTime = 3 * 60 * 1000, // Default 3 minutes
-      inactivityTimeout = 60 * 1000, // Default 1 minute of inactivity before auto-stop
-      includeStatic = false, // Default: don't include static resources
+      maxCaptureTime = 3 * 60 * 1000, // 默认3分钟
+      inactivityTimeout = 60 * 1000, // 默认1分钟非活动后自动停止
+      includeStatic = false, // 默认：不包含静态资源
     } = args;
 
-    console.log(`NetworkCaptureStartTool: Executing with args:`, args);
+    console.log(`网络捕获启动工具: 使用参数执行:`, args);
 
     try {
-      // Get current tab or create new tab
+      // 获取当前标签页或创建新标签页
       let tabToOperateOn: chrome.tabs.Tab;
 
       if (targetUrl) {
-        // Find tabs matching the URL
+        // 查找匹配URL的标签页
         const matchingTabs = await chrome.tabs.query({ url: targetUrl });
 
         if (matchingTabs.length > 0) {
-          // Use existing tab
+          // 使用现有标签页
           tabToOperateOn = matchingTabs[0];
-          console.log(`NetworkCaptureV2: Found existing tab with URL: ${targetUrl}`);
+          console.log(`网络捕获V2: 找到现有标签页，URL: ${targetUrl}`);
         } else {
-          // Create new tab
-          console.log(`NetworkCaptureV2: Creating new tab with URL: ${targetUrl}`);
+          // 创建新标签页
+          console.log(`网络捕获V2: 创建新标签页，URL: ${targetUrl}`);
           tabToOperateOn = await chrome.tabs.create({ url: targetUrl, active: true });
 
-          // Wait for page to load
+          // 等待页面加载
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       } else {
-        // Use current active tab
+        // 使用当前活动标签页
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tabs[0]) {
-          return createErrorResponse('No active tab found');
+          return createErrorResponse('未找到活动标签页');
         }
         tabToOperateOn = tabs[0];
       }
 
       if (!tabToOperateOn?.id) {
-        return createErrorResponse('Failed to identify or create a tab');
+        return createErrorResponse('无法识别或创建标签页');
       }
 
-      // Use startCaptureForTab method to start capture
+      // 使用startCaptureForTab方法开始捕获
       try {
         await this.startCaptureForTab(tabToOperateOn.id, {
           maxCaptureTime,
@@ -833,7 +823,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         });
       } catch (error: any) {
         return createErrorResponse(
-          `Failed to start capture for tab ${tabToOperateOn.id}: ${error.message || String(error)}`,
+          `为标签页 ${tabToOperateOn.id} 开始捕获失败: ${error.message || String(error)}`,
         );
       }
 
@@ -843,7 +833,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: 'Network capture V2 started successfully, waiting for stop command.',
+              message: '网络捕获V2成功启动，等待停止命令。',
               tabId: tabToOperateOn.id,
               url: tabToOperateOn.url,
               maxCaptureTime,
@@ -856,16 +846,14 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error: any) {
-      console.error('NetworkCaptureStartTool: Critical error:', error);
-      return createErrorResponse(
-        `Error in NetworkCaptureStartTool: ${error.message || String(error)}`,
-      );
+      console.error('网络捕获启动工具: 严重错误:', error);
+      return createErrorResponse(`网络捕获启动工具中出错: ${error.message || String(error)}`);
     }
   }
 }
 
 /**
- * Network capture stop tool V2 - Stop webRequest API capture and return results
+ * 网络捕获停止工具V2 - 停止webRequest API捕获并返回结果
  */
 class NetworkCaptureStopTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.NETWORK_CAPTURE_STOP;
@@ -880,49 +868,45 @@ class NetworkCaptureStopTool extends BaseBrowserToolExecutor {
   }
 
   async execute(): Promise<ToolResult> {
-    console.log(`NetworkCaptureStopTool: Executing`);
+    console.log(`网络捕获停止工具: 执行中`);
 
     try {
       const startTool = NetworkCaptureStartTool.instance;
 
       if (!startTool) {
-        return createErrorResponse('Network capture V2 start tool instance not found');
+        return createErrorResponse('未找到网络捕获V2启动工具实例');
       }
 
-      // Get all tabs currently capturing
+      // 获取当前正在捕获的所有标签页
       const ongoingCaptures = Array.from(startTool.captureData.keys());
       console.log(
-        `NetworkCaptureStopTool: Found ${ongoingCaptures.length} ongoing captures: ${ongoingCaptures.join(', ')}`,
+        `网络捕获停止工具: 找到 ${ongoingCaptures.length} 个正在进行的捕获: ${ongoingCaptures.join(', ')}`,
       );
 
       if (ongoingCaptures.length === 0) {
-        return createErrorResponse('No active network captures found in any tab.');
+        return createErrorResponse('在任何标签页中都未找到活动的网络捕获。');
       }
 
-      // Get current active tab
+      // 获取当前活动标签页
       const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
       const activeTabId = activeTabs[0]?.id;
 
-      // Determine the primary tab to stop
+      // 确定要停止的主要标签页
       let primaryTabId: number;
 
       if (activeTabId && startTool.captureData.has(activeTabId)) {
-        // If current active tab is capturing, prioritize stopping it
+        // 如果当前活动标签页正在捕获，优先停止它
         primaryTabId = activeTabId;
-        console.log(
-          `NetworkCaptureStopTool: Active tab ${activeTabId} is capturing, will stop it first.`,
-        );
+        console.log(`网络捕获停止工具: 活动标签页 ${activeTabId} 正在捕获，将首先停止它。`);
       } else if (ongoingCaptures.length === 1) {
-        // If only one tab is capturing, stop it
+        // 如果只有一个标签页在捕获，停止它
         primaryTabId = ongoingCaptures[0];
-        console.log(
-          `NetworkCaptureStopTool: Only one tab ${primaryTabId} is capturing, stopping it.`,
-        );
+        console.log(`网络捕获停止工具: 只有一个标签页 ${primaryTabId} 在捕获，停止它。`);
       } else {
-        // If multiple tabs are capturing but current active tab is not among them, stop the first one
+        // 如果多个标签页在捕获但当前活动标签页不在其中，停止第一个
         primaryTabId = ongoingCaptures[0];
         console.log(
-          `NetworkCaptureStopTool: Multiple tabs capturing, active tab not among them. Stopping tab ${primaryTabId} first.`,
+          `网络捕获停止工具: 多个标签页在捕获，活动标签页不在其中。首先停止标签页 ${primaryTabId}。`,
         );
       }
 
@@ -930,22 +914,22 @@ class NetworkCaptureStopTool extends BaseBrowserToolExecutor {
 
       if (!stopResult.success) {
         return createErrorResponse(
-          stopResult.message || `Failed to stop network capture for tab ${primaryTabId}`,
+          stopResult.message || `停止标签页 ${primaryTabId} 的网络捕获失败`,
         );
       }
 
-      // If multiple tabs are capturing, stop other tabs
+      // 如果多个标签页在捕获，停止其他标签页
       if (ongoingCaptures.length > 1) {
         const otherTabIds = ongoingCaptures.filter((id) => id !== primaryTabId);
         console.log(
-          `NetworkCaptureStopTool: Stopping ${otherTabIds.length} additional captures: ${otherTabIds.join(', ')}`,
+          `网络捕获停止工具: 停止 ${otherTabIds.length} 个额外的捕获: ${otherTabIds.join(', ')}`,
         );
 
         for (const tabId of otherTabIds) {
           try {
             await startTool.stopCapture(tabId);
           } catch (error) {
-            console.error(`NetworkCaptureStopTool: Error stopping capture on tab ${tabId}:`, error);
+            console.error(`网络捕获停止工具: 停止标签页 ${tabId} 的捕获时出错:`, error);
           }
         }
       }
@@ -955,10 +939,10 @@ class NetworkCaptureStopTool extends BaseBrowserToolExecutor {
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: `Capture complete. ${stopResult.data?.requestCount || 0} requests captured.`,
+              message: `捕获完成。捕获了 ${stopResult.data?.requestCount || 0} 个请求。`,
               tabId: primaryTabId,
               tabUrl: stopResult.data?.tabUrl || 'N/A',
-              tabTitle: stopResult.data?.tabTitle || 'Unknown Tab',
+              tabTitle: stopResult.data?.tabTitle || '未知标签页',
               requestCount: stopResult.data?.requestCount || 0,
               commonRequestHeaders: stopResult.data?.commonRequestHeaders || {},
               commonResponseHeaders: stopResult.data?.commonResponseHeaders || {},
@@ -976,10 +960,8 @@ class NetworkCaptureStopTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error: any) {
-      console.error('NetworkCaptureStopTool: Critical error:', error);
-      return createErrorResponse(
-        `Error in NetworkCaptureStopTool: ${error.message || String(error)}`,
-      );
+      console.error('网络捕获停止工具: 严重错误:', error);
+      return createErrorResponse(`网络捕获停止工具中出错: ${error.message || String(error)}`);
     }
   }
 }

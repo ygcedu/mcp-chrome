@@ -10,126 +10,109 @@ import {
   ensureExecutionPermissions,
 } from './scripts/utils';
 
-// Import writeNodePath from postinstall
+// 从 postinstall 导入 writeNodePath
 async function writeNodePath(): Promise<void> {
   try {
     const nodePath = process.execPath;
     const nodePathFile = path.join(__dirname, 'node_path.txt');
 
-    console.log(colorText(`Writing Node.js path: ${nodePath}`, 'blue'));
+    console.log(colorText(`正在写入 Node.js 路径: ${nodePath}`, 'blue'));
     fs.writeFileSync(nodePathFile, nodePath, 'utf8');
-    console.log(colorText('✓ Node.js path written for run_host scripts', 'green'));
+    console.log(colorText('✓ Node.js 路径已写入 run_host 脚本', 'green'));
   } catch (error: any) {
-    console.warn(colorText(`⚠️ Failed to write Node.js path: ${error.message}`, 'yellow'));
+    console.warn(colorText(`⚠️ 写入 Node.js 路径失败: ${error.message}`, 'yellow'));
   }
 }
 
 program
   .version(require('../package.json').version)
-  .description('Mcp Chrome Bridge - Local service for communicating with Chrome extension');
+  .description('Mcp Chrome 桥接 - 与 Chrome 扩展通信的本地服务');
 
-// Register Native Messaging host
+// 注册 Native Messaging 主机
 program
   .command('register')
-  .description('Register Native Messaging host')
-  .option('-f, --force', 'Force re-registration')
-  .option('-s, --system', 'Use system-level installation (requires administrator/sudo privileges)')
+  .description('注册 Native Messaging 主机')
+  .option('-f, --force', '强制重新注册')
+  .option('-s, --system', '使用系统级安装（需要管理员/sudo 权限）')
   .action(async (options) => {
     try {
-      // Write Node.js path for run_host scripts
+      // 为 run_host 脚本写入 Node.js 路径
       await writeNodePath();
 
-      // Detect if running with root/administrator privileges
+      // 检测是否以 root/管理员权限运行
       const isRoot = process.getuid && process.getuid() === 0; // Unix/Linux/Mac
 
       let isAdmin = false;
       if (process.platform === 'win32') {
         try {
-          isAdmin = require('is-admin')(); // Windows requires additional package
+          isAdmin = require('is-admin')(); // Windows 需要额外的包
         } catch (error) {
-          console.warn(
-            colorText('Warning: Unable to detect administrator privileges on Windows', 'yellow'),
-          );
+          console.warn(colorText('警告: 无法在 Windows 上检测管理员权限', 'yellow'));
           isAdmin = false;
         }
       }
 
       const hasElevatedPermissions = isRoot || isAdmin;
 
-      // If --system option is specified or running with root/administrator privileges
+      // 如果指定了 --system 选项或以 root/管理员权限运行
       if (options.system || hasElevatedPermissions) {
         await registerWithElevatedPermissions();
-        console.log(
-          colorText('System-level Native Messaging host registered successfully!', 'green'),
-        );
-        console.log(
-          colorText(
-            'You can now use connectNative in Chrome extension to connect to this service.',
-            'blue',
-          ),
-        );
+        console.log(colorText('系统级 Native Messaging 主机注册成功！', 'green'));
+        console.log(colorText('现在可以在 Chrome 扩展中使用 connectNative 连接到此服务。', 'blue'));
       } else {
-        // Regular user-level installation
-        console.log(colorText('Registering user-level Native Messaging host...', 'blue'));
+        // 常规用户级安装
+        console.log(colorText('正在注册用户级 Native Messaging 主机...', 'blue'));
         const success = await tryRegisterUserLevelHost();
 
         if (success) {
-          console.log(colorText('Native Messaging host registered successfully!', 'green'));
+          console.log(colorText('Native Messaging 主机注册成功！', 'green'));
           console.log(
-            colorText(
-              'You can now use connectNative in Chrome extension to connect to this service.',
-              'blue',
-            ),
+            colorText('现在可以在 Chrome 扩展中使用 connectNative 连接到此服务。', 'blue'),
           );
         } else {
-          console.log(
-            colorText(
-              'User-level registration failed, please try the following methods:',
-              'yellow',
-            ),
-          );
+          console.log(colorText('用户级注册失败，请尝试以下方法：', 'yellow'));
           console.log(colorText('  1. sudo mcp-chrome-bridge register', 'yellow'));
           console.log(colorText('  2. mcp-chrome-bridge register --system', 'yellow'));
           process.exit(1);
         }
       }
     } catch (error: any) {
-      console.error(colorText(`Registration failed: ${error.message}`, 'red'));
+      console.error(colorText(`注册失败: ${error.message}`, 'red'));
       process.exit(1);
     }
   });
 
-// Fix execution permissions
+// 修复执行权限
 program
   .command('fix-permissions')
-  .description('Fix execution permissions for native host files')
+  .description('修复 native host 文件的执行权限')
   .action(async () => {
     try {
-      console.log(colorText('Fixing execution permissions...', 'blue'));
+      console.log(colorText('正在修复执行权限...', 'blue'));
       await ensureExecutionPermissions();
-      console.log(colorText('✓ Execution permissions fixed successfully!', 'green'));
+      console.log(colorText('✓ 执行权限修复成功！', 'green'));
     } catch (error: any) {
-      console.error(colorText(`Failed to fix permissions: ${error.message}`, 'red'));
+      console.error(colorText(`修复权限失败: ${error.message}`, 'red'));
       process.exit(1);
     }
   });
 
-// Update port in stdio-config.json
+// 更新 stdio-config.json 中的端口
 program
   .command('update-port <port>')
-  .description('Update the port number in stdio-config.json')
+  .description('更新 stdio-config.json 中的端口号')
   .action(async (port: string) => {
     try {
       const portNumber = parseInt(port, 10);
       if (isNaN(portNumber) || portNumber < 1 || portNumber > 65535) {
-        console.error(colorText('Error: Port must be a valid number between 1 and 65535', 'red'));
+        console.error(colorText('错误: 端口必须是 1 到 65535 之间的有效数字', 'red'));
         process.exit(1);
       }
 
       const configPath = path.join(__dirname, 'mcp', 'stdio-config.json');
 
       if (!fs.existsSync(configPath)) {
-        console.error(colorText(`Error: Configuration file not found at ${configPath}`, 'red'));
+        console.error(colorText(`错误: 在 ${configPath} 找不到配置文件`, 'red'));
         process.exit(1);
       }
 
@@ -142,17 +125,17 @@ program
 
       fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
 
-      console.log(colorText(`✓ Port updated successfully to ${portNumber}`, 'green'));
-      console.log(colorText(`Updated URL: ${config.url}`, 'blue'));
+      console.log(colorText(`✓ 端口已成功更新为 ${portNumber}`, 'green'));
+      console.log(colorText(`更新后的 URL: ${config.url}`, 'blue'));
     } catch (error: any) {
-      console.error(colorText(`Failed to update port: ${error.message}`, 'red'));
+      console.error(colorText(`更新端口失败: ${error.message}`, 'red'));
       process.exit(1);
     }
   });
 
 program.parse(process.argv);
 
-// If no command provided, show help
+// 如果没有提供命令，显示帮助
 if (!process.argv.slice(2).length) {
   program.outputHelp();
 }

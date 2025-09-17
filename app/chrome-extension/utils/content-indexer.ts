@@ -1,6 +1,6 @@
 /**
- * Content index manager
- * Responsible for automatically extracting, chunking and indexing tab content
+ * 内容索引管理器
+ * 负责自动提取、分块和索引标签页内容
  */
 
 import { TextChunker } from './text-chunker';
@@ -41,7 +41,7 @@ export class ContentIndexer {
   }
 
   /**
-   * Get current selected model configuration
+   * 获取当前选择的模型配置
    */
   private async getCurrentModelConfig() {
     try {
@@ -63,7 +63,7 @@ export class ContentIndexer {
         forceOffscreen: true,
       };
     } catch (error) {
-      console.error('ContentIndexer: Failed to get current model config, using default:', error);
+      console.error('ContentIndexer: 获取当前模型配置失败，使用默认配置:', error);
       return {
         modelPreset: 'multilingual-e5-small' as const,
         modelIdentifier: 'Xenova/multilingual-e5-small',
@@ -78,7 +78,7 @@ export class ContentIndexer {
   }
 
   /**
-   * Initialize content indexer
+   * 初始化内容索引器
    */
   public async initialize(): Promise<void> {
     if (this.isInitialized) return;
@@ -94,10 +94,10 @@ export class ContentIndexer {
 
   private async _doInitialize(): Promise<void> {
     try {
-      // Get current selected model configuration
+      // 获取当前选择的模型配置
       const engineConfig = await this.getCurrentModelConfig();
 
-      // Use proxy class to reuse engine instance in offscreen
+      // 使用代理类在离屏中重用引擎实例
       this.semanticEngine = new SemanticSimilarityEngineProxy(engineConfig);
       await this.semanticEngine.initialize();
 
@@ -111,29 +111,27 @@ export class ContentIndexer {
 
       this.isInitialized = true;
     } catch (error) {
-      console.error('ContentIndexer: Initialization failed:', error);
+      console.error('ContentIndexer: 初始化失败:', error);
       this.isInitialized = false;
       throw error;
     }
   }
 
   /**
-   * Index content of specified tab
+   * 索引指定标签页的内容
    */
   public async indexTabContent(tabId: number): Promise<void> {
-    // Check if semantic engine is ready before attempting to index
+    // 在尝试索引之前检查语义引擎是否就绪
     if (!this.isSemanticEngineReady() && !this.isSemanticEngineInitializing()) {
-      console.log(
-        `ContentIndexer: Skipping tab ${tabId} - semantic engine not ready and not initializing`,
-      );
+      console.log(`ContentIndexer: Skipping tab ${tabId} - 语义引擎未就绪且未初始化`);
       return;
     }
 
     if (!this.isInitialized) {
-      // Only initialize if semantic engine is already ready
+      // 只有在语义引擎已经就绪时才初始化
       if (!this.isSemanticEngineReady()) {
         console.log(
-          `ContentIndexer: Skipping tab ${tabId} - ContentIndexer not initialized and semantic engine not ready`,
+          `ContentIndexer: Skipping tab ${tabId} - ContentIndexer 未初始化 and 语义引擎未就绪`,
         );
         return;
       }
@@ -143,31 +141,31 @@ export class ContentIndexer {
     try {
       const tab = await chrome.tabs.get(tabId);
       if (!tab.url || !this.shouldIndexUrl(tab.url)) {
-        console.log(`ContentIndexer: Skipping tab ${tabId} - URL not indexable`);
+        console.log(`ContentIndexer: Skipping tab ${tabId} - URL 不可索引`);
         return;
       }
 
       const pageKey = `${tab.url}_${tab.title}`;
       if (this.options.skipDuplicates && this.indexedPages.has(pageKey)) {
-        console.log(`ContentIndexer: Skipping tab ${tabId} - already indexed`);
+        console.log(`ContentIndexer: Skipping tab ${tabId} - 已索引`);
         return;
       }
 
-      console.log(`ContentIndexer: Starting to index tab ${tabId}: ${tab.title}`);
+      console.log(`ContentIndexer: 开始索引标签页 ${tabId}: ${tab.title}`);
 
       const content = await this.extractTabContent(tabId);
       if (!content) {
-        console.log(`ContentIndexer: No content extracted from tab ${tabId}`);
+        console.log(`ContentIndexer: 未从标签页 ${tabId} 提取到内容`);
         return;
       }
 
       const chunks = this.textChunker.chunkText(content.textContent, content.title);
-      console.log(`ContentIndexer: Generated ${chunks.length} chunks for tab ${tabId}`);
+      console.log(`ContentIndexer: Generated ${chunks.length} 个块用于标签页 ${tabId}`);
 
       const chunksToIndex = chunks.slice(0, this.options.maxChunksPerPage);
       if (chunks.length > this.options.maxChunksPerPage) {
         console.log(
-          `ContentIndexer: Limited chunks from ${chunks.length} to ${this.options.maxChunksPerPage}`,
+          `ContentIndexer: 将块数限制从 ${chunks.length} 降至 ${this.options.maxChunksPerPage}`,
         );
       }
 
@@ -181,39 +179,33 @@ export class ContentIndexer {
             chunk,
             embedding,
           );
-          console.log(`ContentIndexer: Indexed chunk ${chunk.index} with label ${label}`);
+          console.log(`ContentIndexer: Indexed chunk ${chunk.index} ，标签为 ${label}`);
         } catch (error) {
-          console.error(`ContentIndexer: Failed to index chunk ${chunk.index}:`, error);
+          console.error(`ContentIndexer: 索引块 ${chunk.index} 失败:`, error);
         }
       }
 
       this.indexedPages.add(pageKey);
 
-      console.log(
-        `ContentIndexer: Successfully indexed ${chunksToIndex.length} chunks for tab ${tabId}`,
-      );
+      console.log(`ContentIndexer: 成功索引 ${chunksToIndex.length} 个块用于标签页 ${tabId}`);
     } catch (error) {
-      console.error(`ContentIndexer: Failed to index tab ${tabId}:`, error);
+      console.error(`ContentIndexer: 索引标签页 ${tabId} 失败:`, error);
     }
   }
 
   /**
-   * Search content
+   * 搜索内容
    */
   public async searchContent(query: string, topK: number = 10) {
-    // Check if semantic engine is ready before attempting to search
+    // 在尝试搜索之前检查语义引擎是否就绪
     if (!this.isSemanticEngineReady() && !this.isSemanticEngineInitializing()) {
-      throw new Error(
-        'Semantic engine is not ready yet. Please initialize the semantic engine first.',
-      );
+      throw new Error('语义引擎尚未就绪。请先初始化语义引擎。');
     }
 
     if (!this.isInitialized) {
-      // Only initialize if semantic engine is already ready
+      // 只有在语义引擎已经就绪时才初始化
       if (!this.isSemanticEngineReady()) {
-        throw new Error(
-          'ContentIndexer not initialized and semantic engine not ready. Please initialize the semantic engine first.',
-        );
+        throw new Error('ContentIndexer 未初始化且语义引擎未就绪。请先初始化语义引擎。');
       }
       await this.initialize();
     }
@@ -222,26 +214,22 @@ export class ContentIndexer {
       const queryEmbedding = await this.semanticEngine.getEmbedding(query);
       const results = await this.vectorDatabase.search(queryEmbedding, topK);
 
-      console.log(`ContentIndexer: Found ${results.length} results for query: "${query}"`);
+      console.log(`ContentIndexer: Found ${results.length} 个查询结果： "${query}"`);
       return results;
     } catch (error) {
-      console.error('ContentIndexer: Search failed:', error);
+      console.error('ContentIndexer: 搜索失败:', error);
 
-      if (error instanceof Error && error.message.includes('not initialized')) {
-        console.log(
-          'ContentIndexer: Attempting to reinitialize semantic engine and retry search...',
-        );
+      if (error instanceof Error && error.message.includes('未初始化')) {
+        console.log('ContentIndexer: 尝试重新初始化语义引擎并重试搜索...');
         try {
           await this.semanticEngine.initialize();
           const queryEmbedding = await this.semanticEngine.getEmbedding(query);
           const results = await this.vectorDatabase.search(queryEmbedding, topK);
 
-          console.log(
-            `ContentIndexer: Retry successful, found ${results.length} results for query: "${query}"`,
-          );
+          console.log(`ContentIndexer: 重试成功，找到 ${results.length} 个查询结果： "${query}"`);
           return results;
         } catch (retryError) {
-          console.error('ContentIndexer: Retry after reinitialization also failed:', retryError);
+          console.error('ContentIndexer: 重新初始化后重试仍然失败:', retryError);
           throw retryError;
         }
       }
@@ -251,7 +239,7 @@ export class ContentIndexer {
   }
 
   /**
-   * Remove tab index
+   * 移除标签页索引
    */
   public async removeTabIndex(tabId: number): Promise<void> {
     if (!this.isInitialized) {
@@ -267,25 +255,25 @@ export class ContentIndexer {
         }
       }
 
-      console.log(`ContentIndexer: Removed index for tab ${tabId}`);
+      console.log(`ContentIndexer: 已移除标签页 ${tabId} 的索引`);
     } catch (error) {
-      console.error(`ContentIndexer: Failed to remove index for tab ${tabId}:`, error);
+      console.error(`ContentIndexer: 移除标签页 ${tabId} 的索引失败:`, error);
     }
   }
 
   /**
-   * Check if semantic engine is ready (checks both local and global state)
+   * 检查语义引擎是否就绪（检查本地和全局状态）
    */
   public isSemanticEngineReady(): boolean {
     return this.semanticEngine && this.semanticEngine.isInitialized;
   }
 
   /**
-   * Check if global semantic engine is ready (in background/offscreen)
+   * 检查全局语义引擎是否就绪（在后台/离屏中）
    */
   public async isGlobalSemanticEngineReady(): Promise<boolean> {
     try {
-      // Since ContentIndexer runs in background script, directly call the function instead of sending message
+      // 由于 ContentIndexer 在后台脚本中运行，直接调用函数而不是发送消息
       const { handleGetModelStatus } = await import('@/entrypoints/background/semantic-similarity');
       const response = await handleGetModelStatus();
       return (
@@ -295,13 +283,13 @@ export class ContentIndexer {
         response.status.initializationStatus === 'ready'
       );
     } catch (error) {
-      console.error('ContentIndexer: Failed to check global semantic engine status:', error);
+      console.error('ContentIndexer: 检查全局语义引擎状态失败:', error);
       return false;
     }
   }
 
   /**
-   * Check if semantic engine is initializing
+   * 检查语义引擎是否正在初始化
    */
   public isSemanticEngineInitializing(): boolean {
     return (
@@ -310,10 +298,10 @@ export class ContentIndexer {
   }
 
   /**
-   * Reinitialize content indexer (for model switching)
+   * 重新初始化内容索引器（用于模型切换）
    */
   public async reinitialize(): Promise<void> {
-    console.log('ContentIndexer: Reinitializing for model switch...');
+    console.log('ContentIndexer: 为模型切换重新初始化...');
 
     this.isInitialized = false;
     this.isInitializing = false;
@@ -322,56 +310,54 @@ export class ContentIndexer {
     await this.performCompleteDataCleanupForModelSwitch();
 
     this.indexedPages.clear();
-    console.log('ContentIndexer: Cleared indexed pages cache');
+    console.log('ContentIndexer: 已清空已索引页面缓存');
 
     try {
-      console.log('ContentIndexer: Creating new semantic engine proxy...');
+      console.log('ContentIndexer: 正在创建新的语义引擎代理...');
       const newEngineConfig = await this.getCurrentModelConfig();
-      console.log('ContentIndexer: New engine config:', newEngineConfig);
+      console.log('ContentIndexer: 新的引擎配置:', newEngineConfig);
 
       this.semanticEngine = new SemanticSimilarityEngineProxy(newEngineConfig);
-      console.log('ContentIndexer: New semantic engine proxy created');
+      console.log('ContentIndexer: 已创建新的语义引擎代理');
 
       await this.semanticEngine.initialize();
-      console.log('ContentIndexer: Semantic engine proxy initialization completed');
+      console.log('ContentIndexer: 语义引擎代理初始化完成');
     } catch (error) {
-      console.error('ContentIndexer: Failed to create new semantic engine proxy:', error);
+      console.error('ContentIndexer: 创建新的语义引擎代理失败:', error);
       throw error;
     }
 
-    console.log(
-      'ContentIndexer: New semantic engine proxy is ready, proceeding with initialization',
-    );
+    console.log('ContentIndexer: 新���语义引擎代理已就绪，继续进行初始化');
 
     await this.initialize();
 
-    console.log('ContentIndexer: Reinitialization completed successfully');
+    console.log('ContentIndexer: 重新初始化成功完成');
   }
 
   /**
-   * Perform complete data cleanup for model switching
+   * 执行模型切换的完整数据清理
    */
   private async performCompleteDataCleanupForModelSwitch(): Promise<void> {
-    console.log('ContentIndexer: Starting complete data cleanup for model switch...');
+    console.log('ContentIndexer: 开始执行模型切换的完整数据清理...');
 
     try {
-      // Clear existing vector database instance
+      // 清除现有向量数据库实例
       if (this.vectorDatabase) {
         try {
-          console.log('ContentIndexer: Clearing existing vector database instance...');
+          console.log('ContentIndexer: 正在清理现有的向量数据库实例...');
           await this.vectorDatabase.clear();
-          console.log('ContentIndexer: Vector database instance cleared successfully');
+          console.log('ContentIndexer: 向量数据库实例清理成功');
         } catch (error) {
-          console.warn('ContentIndexer: Failed to clear vector database instance:', error);
+          console.warn('ContentIndexer: 清理向量数据库实例失败:', error);
         }
       }
 
       try {
         const { clearAllVectorData } = await import('./vector-database');
         await clearAllVectorData();
-        console.log('ContentIndexer: Cleared all vector data for model switch');
+        console.log('ContentIndexer: 已清理模型切换的所有向量数据');
       } catch (error) {
-        console.warn('ContentIndexer: Failed to clear vector data:', error);
+        console.warn('ContentIndexer: 清理向量数据失败:', error);
       }
 
       try {
@@ -383,85 +369,85 @@ export class ContentIndexer {
           'lastCleanupTime',
         ];
         await chrome.storage.local.remove(keysToRemove);
-        console.log('ContentIndexer: Cleared chrome.storage model-related data');
+        console.log('ContentIndexer: 已清理 chrome.storage 中与模型相关的数据');
       } catch (error) {
-        console.warn('ContentIndexer: Failed to clear chrome.storage data:', error);
+        console.warn('ContentIndexer: 清理 chrome.storage 数据失败:', error);
       }
 
       try {
         const deleteVectorDB = indexedDB.deleteDatabase('VectorDatabaseStorage');
         await new Promise<void>((resolve) => {
           deleteVectorDB.onsuccess = () => {
-            console.log('ContentIndexer: VectorDatabaseStorage database deleted');
+            console.log('ContentIndexer: 已删除 VectorDatabaseStorage 数据库');
             resolve();
           };
           deleteVectorDB.onerror = () => {
-            console.warn('ContentIndexer: Failed to delete VectorDatabaseStorage database');
-            resolve(); // Don't block the process
+            console.warn('ContentIndexer: 删除 VectorDatabaseStorage 数据库失败');
+            resolve(); // 不要阻塞进程
           };
           deleteVectorDB.onblocked = () => {
-            console.warn('ContentIndexer: VectorDatabaseStorage database deletion blocked');
-            resolve(); // Don't block the process
+            console.warn('ContentIndexer: 删除 VectorDatabaseStorage 数据库被阻止');
+            resolve(); // 不要阻塞进程
           };
         });
 
-        // Clean up hnswlib-index database
+        // 清理 hnswlib-index 数据库
         const deleteHnswDB = indexedDB.deleteDatabase('/hnswlib-index');
         await new Promise<void>((resolve) => {
           deleteHnswDB.onsuccess = () => {
-            console.log('ContentIndexer: /hnswlib-index database deleted');
+            console.log('ContentIndexer: 已删除 /hnswlib-index 数据库');
             resolve();
           };
           deleteHnswDB.onerror = () => {
-            console.warn('ContentIndexer: Failed to delete /hnswlib-index database');
-            resolve(); // Don't block the process
+            console.warn('ContentIndexer: 删除 /hnswlib-index 数据库失败');
+            resolve(); // 不要阻塞进程
           };
           deleteHnswDB.onblocked = () => {
-            console.warn('ContentIndexer: /hnswlib-index database deletion blocked');
-            resolve(); // Don't block the process
+            console.warn('ContentIndexer: 删除 /hnswlib-index 数据库被阻止');
+            resolve(); // 不要阻塞进程
           };
         });
 
-        console.log('ContentIndexer: All IndexedDB databases cleared for model switch');
+        console.log('ContentIndexer: 已清理与模型切换相关的所有 IndexedDB 数据库');
       } catch (error) {
-        console.warn('ContentIndexer: Failed to clear IndexedDB databases:', error);
+        console.warn('ContentIndexer: 清理 IndexedDB 数据库失败:', error);
       }
 
-      console.log('ContentIndexer: Complete data cleanup for model switch finished successfully');
+      console.log('ContentIndexer: 模型切换的完整数据清理已成功完成');
     } catch (error) {
-      console.error('ContentIndexer: Complete data cleanup for model switch failed:', error);
+      console.error('ContentIndexer: 模型切换的完整数据清理失败:', error);
       throw error;
     }
   }
 
   /**
-   * Manually trigger semantic engine initialization (async, don't wait for completion)
-   * Note: This should only be called after the semantic engine is already initialized
+   * 手动触发语义引擎初始化（异步，不等待完成）
+   * 注意：这应该只在语义引擎已经初始化后调用
    */
   public startSemanticEngineInitialization(): void {
     if (!this.isInitialized && !this.isInitializing) {
-      console.log('ContentIndexer: Checking if semantic engine is ready...');
+      console.log('ContentIndexer: 正在检查语义引擎是否就绪...');
 
-      // Check if global semantic engine is ready before initializing ContentIndexer
+      // 在初始化 ContentIndexer 之前检查全局语义引擎是否就绪
       this.isGlobalSemanticEngineReady()
         .then((isReady) => {
           if (isReady) {
-            console.log('ContentIndexer: Starting initialization (semantic engine ready)...');
+            console.log('ContentIndexer: 开始初始化（语义引擎已就绪）...');
             this.initialize().catch((error) => {
-              console.error('ContentIndexer: Background initialization failed:', error);
+              console.error('ContentIndexer: 后台初始化失败:', error);
             });
           } else {
-            console.log('ContentIndexer: Semantic engine not ready, skipping initialization');
+            console.log('ContentIndexer: 语义引擎未就绪，跳过初始化');
           }
         })
         .catch((error) => {
-          console.error('ContentIndexer: Failed to check semantic engine status:', error);
+          console.error('ContentIndexer: 检查语义引擎状态失败:', error);
         });
     }
   }
 
   /**
-   * Get indexing statistics
+   * 获取索引统计信息
    */
   public getStats() {
     const vectorStats = this.vectorDatabase
@@ -482,7 +468,7 @@ export class ContentIndexer {
   }
 
   /**
-   * Clear all indexes
+   * 清除所有索引
    */
   public async clearAllIndexes(): Promise<void> {
     if (!this.isInitialized) {
@@ -492,9 +478,9 @@ export class ContentIndexer {
     try {
       await this.vectorDatabase.clear();
       this.indexedPages.clear();
-      console.log('ContentIndexer: All indexes cleared');
+      console.log('ContentIndexer: 已清空所有索引');
     } catch (error) {
-      console.error('ContentIndexer: Failed to clear indexes:', error);
+      console.error('ContentIndexer: 清空索引失败:', error);
     }
   }
   private setupTabEventListeners(): void {
@@ -502,9 +488,7 @@ export class ContentIndexer {
       if (this.options.autoIndex && changeInfo.status === 'complete' && tab.url) {
         setTimeout(() => {
           if (!this.isSemanticEngineReady() && !this.isSemanticEngineInitializing()) {
-            console.log(
-              `ContentIndexer: Skipping auto-index for tab ${tabId} - semantic engine not ready`,
-            );
+            console.log(`ContentIndexer: Skipping auto-index for tab ${tabId} - 语义引擎未就绪`);
             return;
           }
 
@@ -560,14 +544,11 @@ export class ContentIndexer {
           title: response.title || '',
         };
       } else {
-        console.error(
-          `ContentIndexer: Failed to extract content from tab ${tabId}:`,
-          response.error,
-        );
+        console.error(`ContentIndexer: 从标签页 ${tabId} 提取内容失败:`, response.error);
         return null;
       }
     } catch (error) {
-      console.error(`ContentIndexer: Error extracting content from tab ${tabId}:`, error);
+      console.error(`ContentIndexer: 提取标签页 ${tabId} 内容时出错:`, error);
       return null;
     }
   }
@@ -576,7 +557,7 @@ export class ContentIndexer {
 let globalContentIndexer: ContentIndexer | null = null;
 
 /**
- * Get global ContentIndexer instance
+ * 获取全局 ContentIndexer 实例
  */
 export function getGlobalContentIndexer(): ContentIndexer {
   if (!globalContentIndexer) {

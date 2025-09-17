@@ -9,9 +9,7 @@ export interface ToolExecutor {
   execute(args: any): Promise<ToolResult>;
 }
 
-export const createErrorResponse = (
-  message: string = 'Unknown error, please try again',
-): ToolResult => {
+export const createErrorResponse = (message: string = '未知错误，请重试'): ToolResult => {
   return {
     content: [
       {

@@ -1,5 +1,5 @@
 /* eslint-disable */
-// js/similarity.worker.js
+// js/相似度工作线程.js
 importScripts('../libs/ort.min.js'); // 调整路径以匹配您的文件结构
 
 // 全局Worker状态
@@ -42,7 +42,7 @@ function configureOrtEnv(numThreads = 1, executionProviders = ['wasm']) {
       // executionMode: 'sequential' // 在worker内部通常是顺序执行一个任务
     };
   } catch (error) {
-    console.error('Worker: Failed to configure ORT environment', error);
+    console.error('工作线程: 配置ORT环境失败', error);
     throw error; // 抛出错误，让主线程知道
   }
 }
@@ -52,34 +52,32 @@ async function initializeModel(modelPathOrData, numThreads, executionProviders) 
     configureOrtEnv(numThreads, executionProviders); // 确保环境已配置
 
     if (!modelPathOrData) {
-      throw new Error('Worker: Model path or data is not provided.');
+      throw new Error('工作线程: 未提供模型路径或数据。');
     }
 
-    // Check if input is ArrayBuffer (cached model data) or string (URL path)
+    // 检查输入是否为 ArrayBuffer（缓存的模型数据）或字符串（URL 路径）
     if (modelPathOrData instanceof ArrayBuffer) {
-      console.log(
-        `Worker: Initializing model from cached ArrayBuffer (${modelPathOrData.byteLength} bytes)`,
-      );
+      console.log(`工作线程: 从缓存的ArrayBuffer初始化模型 (${modelPathOrData.byteLength} 字节)`);
       session = await ort.InferenceSession.create(modelPathOrData, sessionOptions);
-      modelPathInternal = '[Cached ArrayBuffer]'; // For debugging purposes
+      modelPathInternal = '[缓存的 ArrayBuffer]'; // 用于调试目的
     } else {
-      console.log(`Worker: Initializing model from URL: ${modelPathOrData}`);
+      console.log(`工作线程: 从URL初始化模型: ${modelPathOrData}`);
       modelPathInternal = modelPathOrData; // 存储模型路径以备调试或重载（如果需要）
       session = await ort.InferenceSession.create(modelPathInternal, sessionOptions);
     }
 
     // 获取模型的输入名称，用于判断是否需要token_type_ids
     modelInputNames = session.inputNames;
-    console.log(`Worker: ONNX session created successfully for model: ${modelPathInternal}`);
-    console.log(`Worker: Model input names:`, modelInputNames);
+    console.log(`工作线程: 模型ONNX会话创建成功: ${modelPathInternal}`);
+    console.log(`工作线程: 模型输入名称:`, modelInputNames);
 
-    return { status: 'success', message: 'Model initialized' };
+    return { status: 'success', message: '模型已初始化' };
   } catch (error) {
-    console.error(`Worker: Model initialization failed:`, error);
+    console.error(`工作线程: 模型初始化失败:`, error);
     session = null; // 清理session以防部分初始化
     modelInputNames = null;
     // 将错误信息序列化，因为Error对象本身可能无法直接postMessage
-    throw new Error(`Worker: Model initialization failed - ${error.message}`);
+    throw new Error(`工作线程: 模型初始化失败 - ${error.message}`);
   }
 }
 
@@ -95,7 +93,7 @@ function getOrCreateBuffer(name, requiredLength, type = BigInt64Array) {
 // 优化的批处理推理函数
 async function runBatchInference(batchData) {
   if (!session) {
-    throw new Error("Worker: Session not initialized. Call 'initializeModel' first.");
+    throw new Error("工作线程: 会话未初始化。请先调用'initializeModel'。");
   }
 
   const startTime = performance.now();
@@ -159,7 +157,7 @@ async function runBatchInference(batchData) {
         );
       }
     } else {
-      console.log('Worker: Skipping token_type_ids as model does not require it');
+      console.log('工作线程: 跳过token_type_ids，因为模型不需要它');
     }
 
     // 执行批处理推理
@@ -193,14 +191,14 @@ async function runBatchInference(batchData) {
       },
     };
   } catch (error) {
-    console.error('Worker: Batch inference failed:', error);
-    throw new Error(`Worker: Batch inference failed - ${error.message}`);
+    console.error('工作线程: 批量推理失败:', error);
+    throw new Error(`工作线程: 批量推理失败 - ${error.message}`);
   }
 }
 
 async function runInference(inputData) {
   if (!session) {
-    throw new Error("Worker: Session not initialized. Call 'initializeModel' first.");
+    throw new Error("工作线程: 会话未初始化。请先调用'initializeModel'。");
   }
 
   const startTime = performance.now();
@@ -262,7 +260,7 @@ async function runInference(inputData) {
         );
       }
     } else {
-      console.log('Worker: Skipping token_type_ids as model does not require it');
+      console.log('工作线程: 跳过token_type_ids，因为模型不需要它');
     }
 
     const results = await session.run(feeds);
@@ -292,8 +290,8 @@ async function runInference(inputData) {
       },
     };
   } catch (error) {
-    console.error('Worker: Inference failed:', error);
-    throw new Error(`Worker: Inference failed - ${error.message}`);
+    console.error('工作线程: 推理失败:', error);
+    throw new Error(`工作线程: 推理失败 - ${error.message}`);
   }
 }
 
@@ -303,7 +301,7 @@ self.onmessage = async (event) => {
   try {
     switch (type) {
       case 'init':
-        // Support both modelPath (URL string) and modelData (ArrayBuffer)
+        // 支持 modelPath（URL 字符串）和 modelData（ArrayBuffer）
         const modelInput = payload.modelData || payload.modelPath;
         await initializeModel(modelInput, payload.numThreads, payload.executionProviders);
         self.postMessage({ id, type: 'init_complete', status: 'success' });
@@ -356,16 +354,16 @@ self.onmessage = async (event) => {
           id,
           type: 'clear_complete',
           status: 'success',
-          payload: { message: 'Buffers cleared' },
+          payload: { message: '缓冲区已清理' },
         });
         break;
       default:
-        console.warn(`Worker: Unknown message type: ${type}`);
+        console.warn(`工作线程: 未知的消息类型: ${type}`);
         self.postMessage({
           id,
           type: 'error',
           status: 'error',
-          payload: { message: `Unknown message type: ${type}` },
+          payload: { message: `未知的消息类型: ${type}` },
         });
     }
   } catch (error) {

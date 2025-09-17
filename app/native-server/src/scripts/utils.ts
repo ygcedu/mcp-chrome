@@ -25,7 +25,7 @@ export function colorText(text: string, color: string): string {
 }
 
 /**
- * Get user-level manifest file path
+ * 获取用户级清单文件路径
  */
 export function getUserManifestPath(): string {
   if (os.platform() === 'win32') {
@@ -61,7 +61,7 @@ export function getUserManifestPath(): string {
 }
 
 /**
- * Get system-level manifest file path
+ * 获取系统级清单文件路径
  */
 export function getSystemManifestPath(): string {
   if (os.platform() === 'win32') {
@@ -83,7 +83,7 @@ export function getSystemManifestPath(): string {
 }
 
 /**
- * Get native host startup script file path
+ * 获取原生主机启动脚本文件路径
  */
 export async function getMainPath(): Promise<string> {
   try {
@@ -92,7 +92,7 @@ export async function getMainPath(): Promise<string> {
     const absoluteWrapperPath = path.resolve(packageDistDir, wrapperScriptName);
     return absoluteWrapperPath;
   } catch (error) {
-    console.log(colorText('Cannot find global package path, using current directory', 'yellow'));
+    console.log(colorText('无法找到全局包路径，使用当前目录', 'yellow'));
     throw error;
   }
 }
@@ -121,23 +121,21 @@ export async function ensureExecutionPermissions(): Promise<void> {
       if (fs.existsSync(filePath)) {
         try {
           fs.chmodSync(filePath, '755');
-          console.log(
-            colorText(`✓ Set execution permissions for ${path.basename(filePath)}`, 'green'),
-          );
+          console.log(colorText(`✓ 为 ${path.basename(filePath)} 设置执行权限`, 'green'));
         } catch (err: any) {
           console.warn(
             colorText(
-              `⚠️ Unable to set execution permissions for ${path.basename(filePath)}: ${err.message}`,
+              `⚠️ 无法为 ${path.basename(filePath)} 设置执行权限: ${err.message}`,
               'yellow',
             ),
           );
         }
       } else {
-        console.warn(colorText(`⚠️ File not found: ${filePath}`, 'yellow'));
+        console.warn(colorText(`⚠️ 文件未找到: ${filePath}`, 'yellow'));
       }
     }
   } catch (error: any) {
-    console.warn(colorText(`⚠️ Error ensuring execution permissions: ${error.message}`, 'yellow'));
+    console.warn(colorText(`⚠️ 确保执行权限时出错: ${error.message}`, 'yellow'));
   }
 }
 
@@ -160,32 +158,25 @@ async function ensureWindowsFilePermissions(packageDistDir: string): Promise<voi
           // 检查写权限
           // 尝试移除只读属性
           fs.chmodSync(filePath, stats.mode | parseInt('200', 8));
-          console.log(
-            colorText(`✓ Removed read-only attribute from ${path.basename(filePath)}`, 'green'),
-          );
+          console.log(colorText(`✓ 从 ${path.basename(filePath)} 移除只读属性`, 'green'));
         }
 
         // 验证文件可读性
         fs.accessSync(filePath, fs.constants.R_OK);
-        console.log(
-          colorText(`✓ Verified file accessibility for ${path.basename(filePath)}`, 'green'),
-        );
+        console.log(colorText(`✓ 验证 ${path.basename(filePath)} 文件可访问性`, 'green'));
       } catch (err: any) {
         console.warn(
-          colorText(
-            `⚠️ Unable to verify file permissions for ${path.basename(filePath)}: ${err.message}`,
-            'yellow',
-          ),
+          colorText(`⚠️ 无法验证 ${path.basename(filePath)} 文件权限: ${err.message}`, 'yellow'),
         );
       }
     } else {
-      console.warn(colorText(`⚠️ File not found: ${filePath}`, 'yellow'));
+      console.warn(colorText(`⚠️ 文件未找到: ${filePath}`, 'yellow'));
     }
   }
 }
 
 /**
- * Create Native Messaging host manifest content
+ * 创建 Native Messaging 主机清单内容
  */
 export async function createManifestContent(): Promise<any> {
   const mainPath = await getMainPath();
@@ -226,7 +217,7 @@ function verifyWindowsRegistryEntry(registryKey: string, expectedPath: string): 
  */
 export async function tryRegisterUserLevelHost(): Promise<boolean> {
   try {
-    console.log(colorText('Attempting to register user-level Native Messaging host...', 'blue'));
+    console.log(colorText('尝试注册用户级 Native Messaging 主机...', 'blue'));
 
     // 1. 确保执行权限
     await ensureExecutionPermissions();
@@ -252,31 +243,29 @@ export async function tryRegisterUserLevelHost(): Promise<boolean> {
         const escapedPath = manifestPath.replace(/\\/g, '\\\\');
         const regCommand = `reg add "${registryKey}" /ve /t REG_SZ /d "${escapedPath}" /f`;
 
-        console.log(colorText(`Executing registry command: ${regCommand}`, 'blue'));
+        console.log(colorText(`执行注册表命令: ${regCommand}`, 'blue'));
         execSync(regCommand, { stdio: 'pipe' });
 
         // 验证注册表项是否创建成功
         if (verifyWindowsRegistryEntry(registryKey, manifestPath)) {
-          console.log(colorText('✓ Successfully created Windows registry entry', 'green'));
+          console.log(colorText('✓ 成功创建 Windows 注册表项', 'green'));
         } else {
-          console.log(colorText('⚠️ Registry entry created but verification failed', 'yellow'));
+          console.log(colorText('⚠️ 注册表项已创建但验证失败', 'yellow'));
         }
       } catch (error: any) {
-        console.log(
-          colorText(`⚠️ Unable to create Windows registry entry: ${error.message}`, 'yellow'),
-        );
-        console.log(colorText(`Registry key: ${registryKey}`, 'yellow'));
-        console.log(colorText(`Manifest path: ${manifestPath}`, 'yellow'));
+        console.log(colorText(`⚠️ 无法创建 Windows 注册表项: ${error.message}`, 'yellow'));
+        console.log(colorText(`注册表键: ${registryKey}`, 'yellow'));
+        console.log(colorText(`清单路径: ${manifestPath}`, 'yellow'));
         return false; // Windows上如果注册表项创建失败，整个注册过程应该视为失败
       }
     }
 
-    console.log(colorText('Successfully registered user-level Native Messaging host!', 'green'));
+    console.log(colorText('成功注册用户级 Native Messaging 主机!', 'green'));
     return true;
   } catch (error) {
     console.log(
       colorText(
-        `User-level registration failed: ${error instanceof Error ? error.message : String(error)}`,
+        `用户级注册失败: ${error instanceof Error ? error.message : String(error)}`,
         'yellow',
       ),
     );
@@ -300,7 +289,7 @@ if (process.platform === 'win32') {
  */
 export async function registerWithElevatedPermissions(): Promise<void> {
   try {
-    console.log(colorText('Attempting to register system-level manifest...', 'blue'));
+    console.log(colorText('尝试注册系统级清单...', 'blue'));
 
     // 1. 确保执行权限
     await ensureExecutionPermissions();
@@ -342,39 +331,28 @@ export async function registerWithElevatedPermissions(): Promise<void> {
           fs.chmodSync(manifestPath, '644');
         }
 
-        console.log(colorText('System-level manifest registration successful!', 'green'));
+        console.log(colorText('系统级清单注册成功!', 'green'));
       } catch (error: any) {
-        console.error(
-          colorText(`System-level manifest installation failed: ${error.message}`, 'red'),
-        );
+        console.error(colorText(`系统级清单安装失败: ${error.message}`, 'red'));
         throw error;
       }
     } else {
       // 没有管理员权限，打印手动操作提示
-      console.log(
-        colorText('⚠️ Administrator privileges required for system-level installation', 'yellow'),
-      );
-      console.log(
-        colorText(
-          'Please run one of the following commands with administrator privileges:',
-          'blue',
-        ),
-      );
+      console.log(colorText('⚠️ 系统级安装需要管理员权限', 'yellow'));
+      console.log(colorText('请使用管理员权限运行以下命令之一:', 'blue'));
 
       if (os.platform() === 'win32') {
-        console.log(colorText('  1. Open Command Prompt as Administrator and run:', 'blue'));
+        console.log(colorText('  1. 以管理员身份打开命令提示符并运行:', 'blue'));
         console.log(colorText(`     ${command}`, 'cyan'));
       } else {
-        console.log(colorText('  1. Run with sudo:', 'blue'));
+        console.log(colorText('  1. 使用 sudo 运行:', 'blue'));
         console.log(colorText(`     sudo ${command}`, 'cyan'));
       }
 
-      console.log(
-        colorText('  2. Or run the registration command with elevated privileges:', 'blue'),
-      );
+      console.log(colorText('  2. 或使用提升权限运行注册命令:', 'blue'));
       console.log(colorText(`     sudo ${COMMAND_NAME} register --system`, 'cyan'));
 
-      throw new Error('Administrator privileges required for system-level installation');
+      throw new Error('系统级安装需要管理员权限');
     }
 
     // 6. Windows特殊处理 - 设置系统级注册表
@@ -384,8 +362,8 @@ export async function registerWithElevatedPermissions(): Promise<void> {
       const escapedPath = manifestPath.replace(/\\/g, '\\\\');
       const regCommand = `reg add "${registryKey}" /ve /t REG_SZ /d "${escapedPath}" /f`;
 
-      console.log(colorText(`Creating system registry entry: ${registryKey}`, 'blue'));
-      console.log(colorText(`Manifest path: ${manifestPath}`, 'blue'));
+      console.log(colorText(`创建系统注册表项: ${registryKey}`, 'blue'));
+      console.log(colorText(`清单路径: ${manifestPath}`, 'blue'));
 
       if (hasElevatedPermissions) {
         // 已经有管理员权限，直接执行注册表命令
@@ -394,36 +372,29 @@ export async function registerWithElevatedPermissions(): Promise<void> {
 
           // 验证注册表项是否创建成功
           if (verifyWindowsRegistryEntry(registryKey, manifestPath)) {
-            console.log(colorText('Windows registry entry created successfully!', 'green'));
+            console.log(colorText('Windows 注册表项创建成功!', 'green'));
           } else {
-            console.log(colorText('⚠️ Registry entry created but verification failed', 'yellow'));
+            console.log(colorText('⚠️ 注册表项已创建但验证失败', 'yellow'));
           }
         } catch (error: any) {
-          console.error(
-            colorText(`Windows registry entry creation failed: ${error.message}`, 'red'),
-          );
-          console.error(colorText(`Command: ${regCommand}`, 'red'));
+          console.error(colorText(`Windows 注册表项创建失败: ${error.message}`, 'red'));
+          console.error(colorText(`命令: ${regCommand}`, 'red'));
           throw error;
         }
       } else {
         // 没有管理员权限，打印手动操作提示
-        console.log(
-          colorText(
-            '⚠️ Administrator privileges required for Windows registry modification',
-            'yellow',
-          ),
-        );
-        console.log(colorText('Please run the following command as Administrator:', 'blue'));
+        console.log(colorText('⚠️ Windows 注册表修改需要管理员权限', 'yellow'));
+        console.log(colorText('请以管理员身份运行以下命令:', 'blue'));
         console.log(colorText(`  ${regCommand}`, 'cyan'));
-        console.log(colorText('Or run the registration command with elevated privileges:', 'blue'));
+        console.log(colorText('或使用提升权限运行注册命令:', 'blue'));
         console.log(
           colorText(
-            `  Run Command Prompt as Administrator and execute: ${COMMAND_NAME} register --system`,
+            `  以管理员身份运行命令提示符并执行: ${COMMAND_NAME} register --system`,
             'cyan',
           ),
         );
 
-        throw new Error('Administrator privileges required for Windows registry modification');
+        throw new Error('Windows 注册表修改需要管理员权限');
       }
     }
   } catch (error: any) {

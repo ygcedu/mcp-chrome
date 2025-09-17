@@ -1,11 +1,11 @@
 /**
- * Image processing utility functions
+ * 图像处理工具函数
  */
 
 /**
- * Create ImageBitmap from data URL (for OffscreenCanvas)
- * @param dataUrl Image data URL
- * @returns Created ImageBitmap object
+ * 从数据URL创建ImageBitmap（用于OffscreenCanvas）
+ * @param dataUrl 图像数据URL
+ * @returns 创建的ImageBitmap对象
  */
 export async function createImageBitmapFromUrl(dataUrl: string): Promise<ImageBitmap> {
   const response = await fetch(dataUrl);
@@ -14,11 +14,11 @@ export async function createImageBitmapFromUrl(dataUrl: string): Promise<ImageBi
 }
 
 /**
- * Stitch multiple image parts (dataURL) onto a single canvas
- * @param parts Array of image parts, each containing dataUrl and y coordinate
- * @param totalWidthPx Total width (pixels)
- * @param totalHeightPx Total height (pixels)
- * @returns Stitched canvas
+ * 将多个图像部分（dataURL）拼接到单个画布上
+ * @param parts 图像部分数组，每个部分包含dataUrl和y坐标
+ * @param totalWidthPx 总宽度（像素）
+ * @param totalHeightPx 总高度（像素）
+ * @returns 拼接后的画布
  */
 export async function stitchImages(
   parts: { dataUrl: string; y: number }[],
@@ -29,7 +29,7 @@ export async function stitchImages(
   const ctx = canvas.getContext('2d');
 
   if (!ctx) {
-    throw new Error('Unable to get canvas context');
+    throw new Error('无法获取画布上下文');
   }
 
   ctx.fillStyle = '#FFFFFF';
@@ -52,20 +52,20 @@ export async function stitchImages(
 
       ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, dy, sWidth, sHeight);
     } catch (error) {
-      console.error('Error stitching image part:', error, part);
+      console.error('拼接图像部分时出错:', error, part);
     }
   }
   return canvas;
 }
 
 /**
- * Crop image (from dataURL) to specified rectangle and resize
- * @param originalDataUrl Original image data URL
- * @param cropRectPx Crop rectangle (physical pixels)
- * @param dpr Device pixel ratio
- * @param targetWidthOpt Optional target output width (CSS pixels)
- * @param targetHeightOpt Optional target output height (CSS pixels)
- * @returns Cropped canvas
+ * 将图像（来臯dataURL）裁剪到指定矩形并重新调整大小
+ * @param originalDataUrl 原始图像数据URL
+ * @param cropRectPx 裁剪矩形（物理像素）
+ * @param dpr 设备像素比
+ * @param targetWidthOpt 可选的目标输出宽度（CSS像素）
+ * @param targetHeightOpt 可选的目标输出高度（CSS像素）
+ * @returns 裁剪后的画布
  */
 export async function cropAndResizeImage(
   originalDataUrl: string,
@@ -81,7 +81,7 @@ export async function cropAndResizeImage(
   let sWidth = cropRectPx.width;
   let sHeight = cropRectPx.height;
 
-  // Ensure crop area is within image boundaries
+  // 确保裁剪区域在图像边界内
   if (sx < 0) {
     sWidth += sx;
     sx = 0;
@@ -98,9 +98,7 @@ export async function cropAndResizeImage(
   }
 
   if (sWidth <= 0 || sHeight <= 0) {
-    throw new Error(
-      'Invalid calculated crop size (<=0). Element may not be visible or fully captured.',
-    );
+    throw new Error('计算的裁剪大小无效（<=0）。元素可能不可见或未完全捕获。');
   }
 
   const finalCanvasWidthPx = targetWidthOpt ? targetWidthOpt * dpr : sWidth;
@@ -110,7 +108,7 @@ export async function cropAndResizeImage(
   const ctx = canvas.getContext('2d');
 
   if (!ctx) {
-    throw new Error('Unable to get canvas context');
+    throw new Error('无法获取画布上下文');
   }
 
   ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, finalCanvasWidthPx, finalCanvasHeightPx);
@@ -119,11 +117,11 @@ export async function cropAndResizeImage(
 }
 
 /**
- * Convert canvas to data URL
- * @param canvas Canvas
- * @param format Image format
- * @param quality JPEG quality (0-1)
- * @returns Data URL
+ * 将画布转换为数据URL
+ * @param canvas 画布
+ * @param format 图像格式
+ * @param quality JPEG质量（0-1）
+ * @returns 数据URL
  */
 export async function canvasToDataURL(
   canvas: OffscreenCanvas,
@@ -144,15 +142,15 @@ export async function canvasToDataURL(
 }
 
 /**
- * Compresses an image by scaling it and converting it to a target format with a specific quality.
- * This is the most effective way to reduce image data size for transport or storage.
+ * 通过缩放图像并将其转换为指定质量的目标格式来压缩图像。
+ * 这是减少图像数据大小以便传输或存储的最有效方法。
  *
- * @param {string} imageDataUrl - The original image data URL (e.g., from captureVisibleTab).
- * @param {object} options - Compression options.
- * @param {number} [options.scale=1.0] - The scaling factor for dimensions (e.g., 0.7 for 70%).
- * @param {number} [options.quality=0.8] - The quality for lossy formats like JPEG (0.0 to 1.0).
- * @param {string} [options.format='image/jpeg'] - The target image format.
- * @returns {Promise<{dataUrl: string, mimeType: string}>} A promise that resolves to the compressed image data URL and its MIME type.
+ * @param {string} imageDataUrl - 原始图像数据URL（例如，来自captureVisibleTab）。
+ * @param {object} options - 压缩选项。
+ * @param {number} [options.scale=1.0] - 尺寸的缩放因子（例如，0.7表示70%）。
+ * @param {number} [options.quality=0.8] - 有损格式（如JPEG）的质量（0.0到1.0）。
+ * @param {string} [options.format='image/jpeg'] - 目标图像格式。
+ * @returns {Promise<{dataUrl: string, mimeType: string}>} 返回压缩后的图像数据URL及其MIME类型的Promise。
  */
 export async function compressImage(
   imageDataUrl: string,
@@ -160,30 +158,29 @@ export async function compressImage(
 ): Promise<{ dataUrl: string; mimeType: string }> {
   const { scale = 1.0, quality = 0.8, format = 'image/jpeg' } = options;
 
-  // 1. Create an ImageBitmap from the original data URL for efficient drawing.
+  // 1. 从原始数据URL创建ImageBitmap以实现高效绘制。
   const imageBitmap = await createImageBitmapFromUrl(imageDataUrl);
 
-  // 2. Calculate the new dimensions based on the scale factor.
+  // 2. 根据缩放因子计算新尺寸。
   const newWidth = Math.round(imageBitmap.width * scale);
   const newHeight = Math.round(imageBitmap.height * scale);
 
-  // 3. Use OffscreenCanvas for performance, as it doesn't need to be in the DOM.
+  // 3. 使用OffscreenCanvas提高性能，因为它不需要在DOM中。
   const canvas = new OffscreenCanvas(newWidth, newHeight);
   const ctx = canvas.getContext('2d');
 
   if (!ctx) {
-    throw new Error('Failed to get 2D context from OffscreenCanvas');
+    throw new Error('从 OffscreenCanvas 获取 2D 上下文失败');
   }
 
-  // 4. Draw the original image onto the smaller canvas, effectively resizing it.
+  // 4. 将原始图像绘制到较小的画布上，有效地重新调整其大小。
   ctx.drawImage(imageBitmap, 0, 0, newWidth, newHeight);
 
-  // 5. Export the canvas content to the target format with the specified quality.
-  // This is the step that performs the data compression.
+  // 5. 将画布内容以指定质量导出为目标格式。
+  // 这是执行数据压缩的步骤。
   const compressedDataUrl = await canvas.convertToBlob({ type: format, quality: quality });
 
-  // A helper to convert blob to data URL since OffscreenCanvas.toDataURL is not standard yet
-  // on all execution contexts (like service workers).
+  // 一个将blob转换为数据URL的辅助函数，因为OffscreenCanvas.toDataURL在所有执行上下文（如service workers）中尚未标准化。
   const dataUrl = await new Promise<string>((resolve) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result as string);

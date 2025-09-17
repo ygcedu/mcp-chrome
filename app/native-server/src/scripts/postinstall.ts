@@ -6,24 +6,24 @@ import path from 'path';
 import { COMMAND_NAME } from './constant';
 import { colorText, tryRegisterUserLevelHost } from './utils';
 
-// Check if this script is run directly
+// 检查此脚本是否直接运行
 const isDirectRun = require.main === module;
 
-// Detect global installation for both npm and pnpm
+// 检测 npm 和 pnpm 的全局安装
 function detectGlobalInstall(): boolean {
-  // npm uses npm_config_global
+  // npm 使用 npm_config_global
   if (process.env.npm_config_global === 'true') {
     return true;
   }
 
-  // pnpm detection methods
-  // Method 1: Check if PNPM_HOME is set and current path contains it
+  // pnpm 检测方法
+  // 方法 1: 检查是否设置了 PNPM_HOME 且当前路径包含它
   if (process.env.PNPM_HOME && __dirname.includes(process.env.PNPM_HOME)) {
     return true;
   }
 
-  // Method 2: Check if we're in a global pnpm directory structure
-  // pnpm global packages are typically installed in ~/.local/share/pnpm/global/5/node_modules
+  // 方法 2: 检查我们是否在全局 pnpm 目录结构中
+  // pnpm 全局包通常安装在 ~/.local/share/pnpm/global/5/node_modules
   // Windows: %APPDATA%\pnpm\global\5\node_modules
   const globalPnpmPatterns =
     process.platform === 'win32'
@@ -34,12 +34,12 @@ function detectGlobalInstall(): boolean {
     return true;
   }
 
-  // Method 3: Check npm_config_prefix for pnpm
+  // 方法 3: 检查 pnpm 的 npm_config_prefix
   if (process.env.npm_config_prefix && __dirname.includes(process.env.npm_config_prefix)) {
     return true;
   }
 
-  // Method 4: Windows-specific global installation paths
+  // 方法 4: Windows 特定的全局安装路径
   if (process.platform === 'win32') {
     const windowsGlobalPatterns = [
       '\\npm\\node_modules\\',
@@ -59,18 +59,18 @@ function detectGlobalInstall(): boolean {
 const isGlobalInstall = detectGlobalInstall();
 
 /**
- * Write Node.js path for run_host scripts to avoid fragile relative paths
+ * 为 run_host 脚本写入 Node.js 路径以避免脆弱的相对路径
  */
 async function writeNodePath(): Promise<void> {
   try {
     const nodePath = process.execPath;
     const nodePathFile = path.join(__dirname, '..', 'node_path.txt');
 
-    console.log(colorText(`Writing Node.js path: ${nodePath}`, 'blue'));
+    console.log(colorText(`正在写入 Node.js 路径: ${nodePath}`, 'blue'));
     fs.writeFileSync(nodePathFile, nodePath, 'utf8');
-    console.log(colorText('✓ Node.js path written for run_host scripts', 'green'));
+    console.log(colorText('✓ 已为 run_host 脚本写入 Node.js 路径', 'green'));
   } catch (error: any) {
-    console.warn(colorText(`⚠️ Failed to write Node.js path: ${error.message}`, 'yellow'));
+    console.warn(colorText(`⚠️ 写入 Node.js 路径失败: ${error.message}`, 'yellow'));
   }
 }
 
@@ -95,19 +95,14 @@ async function ensureExecutionPermissions(): Promise<void> {
     if (fs.existsSync(filePath)) {
       try {
         fs.chmodSync(filePath, '755');
-        console.log(
-          colorText(`✓ Set execution permissions for ${path.basename(filePath)}`, 'green'),
-        );
+        console.log(colorText(`✓ 为 ${path.basename(filePath)} 设置执行权限`, 'green'));
       } catch (err: any) {
         console.warn(
-          colorText(
-            `⚠️ Unable to set execution permissions for ${path.basename(filePath)}: ${err.message}`,
-            'yellow',
-          ),
+          colorText(`⚠️ 无法为 ${path.basename(filePath)} 设置执行权限: ${err.message}`, 'yellow'),
         );
       }
     } else {
-      console.warn(colorText(`⚠️ File not found: ${filePath}`, 'yellow'));
+      console.warn(colorText(`⚠️ 文件未找到: ${filePath}`, 'yellow'));
     }
   }
 }
@@ -131,60 +126,44 @@ async function ensureWindowsFilePermissions(): Promise<void> {
           // 检查写权限
           // 尝试移除只读属性
           fs.chmodSync(filePath, stats.mode | parseInt('200', 8));
-          console.log(
-            colorText(`✓ Removed read-only attribute from ${path.basename(filePath)}`, 'green'),
-          );
+          console.log(colorText(`✓ 从 ${path.basename(filePath)} 移除只读属性`, 'green'));
         }
 
         // 验证文件可读性
         fs.accessSync(filePath, fs.constants.R_OK);
-        console.log(
-          colorText(`✓ Verified file accessibility for ${path.basename(filePath)}`, 'green'),
-        );
+        console.log(colorText(`✓ 验证 ${path.basename(filePath)} 文件可访问性`, 'green'));
       } catch (err: any) {
         console.warn(
-          colorText(
-            `⚠️ Unable to verify file permissions for ${path.basename(filePath)}: ${err.message}`,
-            'yellow',
-          ),
+          colorText(`⚠️ 无法验证 ${path.basename(filePath)} 文件权限: ${err.message}`, 'yellow'),
         );
       }
     } else {
-      console.warn(colorText(`⚠️ File not found: ${filePath}`, 'yellow'));
+      console.warn(colorText(`⚠️ 文件未找到: ${filePath}`, 'yellow'));
     }
   }
 }
 
 async function tryRegisterNativeHost(): Promise<void> {
   try {
-    console.log(colorText('Attempting to register Chrome Native Messaging host...', 'blue'));
+    console.log(colorText('尝试注册 Chrome Native Messaging 主机...', 'blue'));
 
-    // Always ensure execution permissions, regardless of installation type
+    // 无论安装类型如何，始终确保执行权限
     await ensureExecutionPermissions();
 
     if (isGlobalInstall) {
-      // First try user-level installation (no elevated permissions required)
+      // 首先尝试用户级安装（不需要提升权限）
       const userLevelSuccess = await tryRegisterUserLevelHost();
 
       if (!userLevelSuccess) {
-        // User-level installation failed, suggest using register command
-        console.log(
-          colorText(
-            'User-level installation failed, system-level installation may be needed',
-            'yellow',
-          ),
-        );
-        console.log(
-          colorText('Please run the following command for system-level installation:', 'blue'),
-        );
+        // 用户级安装失败，建议使用注册命令
+        console.log(colorText('用户级安装失败，可能需要系统级安装', 'yellow'));
+        console.log(colorText('请运行以下命令进行系统级安装:', 'blue'));
         console.log(`  ${COMMAND_NAME} register --system`);
         printManualInstructions();
       }
     } else {
-      // Local installation mode, don't attempt automatic registration
-      console.log(
-        colorText('Local installation detected, skipping automatic registration', 'yellow'),
-      );
+      // 本地安装模式，不尝试自动注册
+      console.log(colorText('检测到本地安装，跳过自动注册', 'yellow'));
       printManualInstructions();
     }
   } catch (error) {
@@ -202,41 +181,34 @@ async function tryRegisterNativeHost(): Promise<void> {
  * 打印手动安装指南
  */
 function printManualInstructions(): void {
-  console.log('\n' + colorText('===== Manual Registration Guide =====', 'blue'));
+  console.log('\n' + colorText('===== 手动注册指南 =====', 'blue'));
 
-  console.log(colorText('1. Try user-level installation (recommended):', 'yellow'));
+  console.log(colorText('1. 尝试用户级安装（推荐）:', 'yellow'));
   if (isGlobalInstall) {
     console.log(`  ${COMMAND_NAME} register`);
   } else {
     console.log(`  npx ${COMMAND_NAME} register`);
   }
 
-  console.log(
-    colorText('\n2. If user-level installation fails, try system-level installation:', 'yellow'),
-  );
+  console.log(colorText('\n2. 如果用户级安装失败，尝试系统级安装:', 'yellow'));
 
-  console.log(colorText('   Use --system parameter (auto-elevate permissions):', 'yellow'));
+  console.log(colorText('   使用 --system 参数（自动提升权限）:', 'yellow'));
   if (isGlobalInstall) {
     console.log(`  ${COMMAND_NAME} register --system`);
   } else {
     console.log(`  npx ${COMMAND_NAME} register --system`);
   }
 
-  console.log(colorText('\n   Or use administrator privileges directly:', 'yellow'));
+  console.log(colorText('\n   或直接使用管理员权限:', 'yellow'));
   if (os.platform() === 'win32') {
-    console.log(
-      colorText(
-        '   Please run Command Prompt or PowerShell as administrator and execute:',
-        'yellow',
-      ),
-    );
+    console.log(colorText('   请以管理员身份运行命令提示符或 PowerShell 并执行:', 'yellow'));
     if (isGlobalInstall) {
       console.log(`  ${COMMAND_NAME} register`);
     } else {
       console.log(`  npx ${COMMAND_NAME} register`);
     }
   } else {
-    console.log(colorText('   Please run the following command in terminal:', 'yellow'));
+    console.log(colorText('   请在终端中运行以下命令:', 'yellow'));
     if (isGlobalInstall) {
       console.log(`  sudo ${COMMAND_NAME} register`);
     } else {
@@ -244,52 +216,43 @@ function printManualInstructions(): void {
     }
   }
 
-  console.log(
-    '\n' +
-      colorText(
-        'Ensure Chrome extension is installed and refresh the extension to connect to local service.',
-        'blue',
-      ),
-  );
+  console.log('\n' + colorText('确保已安装 Chrome 扩展并刷新扩展以连接到本地服务。', 'blue'));
 }
 
 /**
  * 主函数
  */
 async function main(): Promise<void> {
-  console.log(colorText(`Installing ${COMMAND_NAME}...`, 'green'));
+  console.log(colorText(`正在安装 ${COMMAND_NAME}...`, 'green'));
 
-  // Debug information
-  console.log(colorText('Installation environment debug info:', 'blue'));
+  // 调试信息
+  console.log(colorText('安装环境调试信息:', 'blue'));
   console.log(`  __dirname: ${__dirname}`);
   console.log(`  npm_config_global: ${process.env.npm_config_global}`);
   console.log(`  PNPM_HOME: ${process.env.PNPM_HOME}`);
   console.log(`  npm_config_prefix: ${process.env.npm_config_prefix}`);
   console.log(`  isGlobalInstall: ${isGlobalInstall}`);
 
-  // Always ensure execution permissions first
+  // 始终首先确保执行权限
   await ensureExecutionPermissions();
 
-  // Write Node.js path for run_host scripts to use
+  // 为 run_host 脚本写入 Node.js 路径以供使用
   await writeNodePath();
 
-  // If global installation, try automatic registration
+  // 如果是全局安装，尝试自动注册
   if (isGlobalInstall) {
     await tryRegisterNativeHost();
   } else {
-    console.log(colorText('Local installation detected', 'yellow'));
+    console.log(colorText('检测到本地安装', 'yellow'));
     printManualInstructions();
   }
 }
 
-// Only execute main function when running this script directly
+// 仅在直接运行此脚本时执行主函数
 if (isDirectRun) {
   main().catch((error) => {
     console.error(
-      colorText(
-        `Installation script error: ${error instanceof Error ? error.message : String(error)}`,
-        'red',
-      ),
+      colorText(`安装脚本错误: ${error instanceof Error ? error.message : String(error)}`, 'red'),
     );
   });
 }

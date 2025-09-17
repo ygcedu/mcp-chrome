@@ -1,6 +1,6 @@
 /**
- * Text chunking utility
- * Based on semantic chunking strategy, splits long text into small chunks suitable for vectorization
+ * 文本分块工具
+ * 基于语义分块策略，将长文本分割成适合向量化的小块
  */
 
 export interface TextChunk {
@@ -113,7 +113,7 @@ export class TextChunker {
   }
 
   /**
-   * Group sentences into chunks
+   * 将句子分组为块
    */
   private groupSentencesIntoChunks(
     sentences: string[],
@@ -158,7 +158,7 @@ export class TextChunker {
   }
 
   /**
-   * Mixed chunking method (handles long sentences)
+   * 混合分块方法（处理长句子）
    */
   private mixedChunking(
     sentences: string[],
@@ -202,7 +202,7 @@ export class TextChunker {
   }
 
   /**
-   * Fallback chunking (when sentence splitting fails)
+   * 回退分块（当句子分割失败时）
    */
   private fallbackChunking(
     content: string,

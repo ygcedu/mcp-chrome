@@ -6,7 +6,7 @@ import {
   BACKGROUND_MESSAGE_TYPES,
 } from '@/common/message-types';
 
-// Global semantic similarity engine instance
+// 全局语义相似度引擎实例
 let similarityEngine: SemanticSimilarityEngine | null = null;
 interface OffscreenMessage {
   target: MessageTarget | string;
@@ -51,7 +51,7 @@ type MessageResponse = {
   currentConfig?: any;
 };
 
-// Listen for messages from the extension
+// 监听来自扩展的消息
 chrome.runtime.onMessage.addListener(
   (
     message: OffscreenMessage,
@@ -67,7 +67,7 @@ chrome.runtime.onMessage.addListener(
         case SendMessageType.SimilarityEngineInit:
         case OFFSCREEN_MESSAGE_TYPES.SIMILARITY_ENGINE_INIT: {
           const initMsg = message as SimilarityEngineInitMessage;
-          console.log('Offscreen: Received similarity engine init message:', message.type);
+          console.log('离屏文档: 收到语义引擎初始化消息:', message.type);
           handleSimilarityEngineInit(initMsg.config)
             .then(() => sendResponse({ success: true }))
             .catch((error) => sendResponse({ success: false, error: error.message }));
@@ -86,7 +86,7 @@ chrome.runtime.onMessage.addListener(
           const embeddingMsg = message as SimilarityEngineGetEmbeddingMessage;
           handleGetEmbedding(embeddingMsg.text, embeddingMsg.options)
             .then((embedding) => {
-              console.log('Offscreen: Sending embedding response:', {
+              console.log('离屏文档: 发送嵌入响应:', {
                 length: embedding.length,
                 type: typeof embedding,
                 constructor: embedding.constructor.name,
@@ -94,7 +94,7 @@ chrome.runtime.onMessage.addListener(
                 firstFewValues: Array.from(embedding.slice(0, 5)),
               });
               const embeddingArray = Array.from(embedding);
-              console.log('Offscreen: Converted to array:', {
+              console.log('离屏文档: 转换为数组:', {
                 length: embeddingArray.length,
                 type: typeof embeddingArray,
                 isArray: Array.isArray(embeddingArray),
@@ -127,39 +127,37 @@ chrome.runtime.onMessage.addListener(
         }
 
         default:
-          sendResponse({ error: `Unknown message type: ${message.type}` });
+          sendResponse({ error: `未知消息类型: ${message.type}` });
       }
     } catch (error) {
       if (error instanceof Error) {
         sendResponse({ error: error.message });
       } else {
-        sendResponse({ error: 'Unknown error occurred' });
+        sendResponse({ error: '发生未知错误' });
       }
     }
 
-    // Return true to indicate we'll respond asynchronously
+    // 返回true表示我们将异步响应
     return true;
   },
 );
 
-// Global variable to track current model state
+// 跟踪当前模型状态的全局变量
 let currentModelConfig: any = null;
 
 /**
- * Check if engine reinitialization is needed
+ * 检查是否需要重新初始化引擎
  */
 function needsReinitialization(newConfig: any): boolean {
   if (!similarityEngine || !currentModelConfig) {
     return true;
   }
 
-  // Check if key configuration has changed
+  // 检查关键配置是否已更改
   const keyFields = ['modelPreset', 'modelVersion', 'modelIdentifier', 'dimension'];
   for (const field of keyFields) {
     if (newConfig[field] !== currentModelConfig[field]) {
-      console.log(
-        `Offscreen: ${field} changed from ${currentModelConfig[field]} to ${newConfig[field]}`,
-      );
+      console.log(`离屏文档: ${field} 从 ${currentModelConfig[field]} 更改为 ${newConfig[field]}`);
       return true;
     }
   }
@@ -168,90 +166,90 @@ function needsReinitialization(newConfig: any): boolean {
 }
 
 /**
- * Progress callback function type
+ * 进度回调函数类型
  */
 type ProgressCallback = (progress: { status: string; progress: number; message?: string }) => void;
 
 /**
- * Initialize semantic similarity engine
+ * 初始化语义相似度引擎
  */
 async function handleSimilarityEngineInit(config: any): Promise<void> {
-  console.log('Offscreen: Initializing semantic similarity engine with config:', config);
-  console.log('Offscreen: Config useLocalFiles:', config.useLocalFiles);
-  console.log('Offscreen: Config modelPreset:', config.modelPreset);
-  console.log('Offscreen: Config modelVersion:', config.modelVersion);
-  console.log('Offscreen: Config modelDimension:', config.modelDimension);
-  console.log('Offscreen: Config modelIdentifier:', config.modelIdentifier);
+  console.log('离屏文档: 使用配置初始化语义相似度引擎:', config);
+  console.log('离屏文档: 配置 useLocalFiles:', config.useLocalFiles);
+  console.log('离屏文档: 配置 modelPreset:', config.modelPreset);
+  console.log('离屏文档: 配置 modelVersion:', config.modelVersion);
+  console.log('离屏文档: 配置 modelDimension:', config.modelDimension);
+  console.log('离屏文档: 配置 modelIdentifier:', config.modelIdentifier);
 
-  // Check if reinitialization is needed
+  // 检查是否需要重新初始化
   const needsReinit = needsReinitialization(config);
-  console.log('Offscreen: Needs reinitialization:', needsReinit);
+  console.log('离屏文档: 需要重新初始化:', needsReinit);
 
   if (!needsReinit) {
-    console.log('Offscreen: Using existing engine (no changes detected)');
+    console.log('离屏文档: 使用现有引擎（未检测到更改）');
     await updateModelStatus('ready', 100);
     return;
   }
 
-  // If engine already exists, clean up old instance first (support model switching)
+  // 如果引擎已存在，首先清理旧实例（支持模型切换）
   if (similarityEngine) {
-    console.log('Offscreen: Cleaning up existing engine for model switch...');
+    console.log('离屏文档: 为模型切换清理现有引擎...');
     try {
-      // Properly call dispose method to clean up all resources
+      // 正确调用dispose方法清理所有资源
       await similarityEngine.dispose();
-      console.log('Offscreen: Previous engine disposed successfully');
+      console.log('离屏文档: 之前的引擎已成功释放');
     } catch (error) {
-      console.warn('Offscreen: Failed to dispose previous engine:', error);
+      console.warn('离屏文档: 释放之前的引擎失败:', error);
     }
     similarityEngine = null;
     currentModelConfig = null;
 
-    // Clear vector data in IndexedDB to ensure data consistency
+    // 清除IndexedDB中的向量数据以确保数据一致性
     try {
-      console.log('Offscreen: Clearing IndexedDB vector data for model switch...');
+      console.log('离屏文档: 为模型切换清除IndexedDB向量数据...');
       await clearVectorIndexedDB();
-      console.log('Offscreen: IndexedDB vector data cleared successfully');
+      console.log('离屏文档: IndexedDB向量数据清除成功');
     } catch (error) {
-      console.warn('Offscreen: Failed to clear IndexedDB vector data:', error);
+      console.warn('离屏文档: 清除IndexedDB向量数据失败:', error);
     }
   }
 
   try {
-    // Update status to initializing
+    // 更新状态为初始化中
     await updateModelStatus('initializing', 10);
 
-    // Create progress callback function
+    // 创建进度回调函数
     const progressCallback: ProgressCallback = async (progress) => {
-      console.log('Offscreen: Progress update:', progress);
+      console.log('离屏文档: 进度更新:', progress);
       await updateModelStatus(progress.status, progress.progress);
     };
 
-    // Create engine instance and pass progress callback
+    // 创建引擎实例并传递进度回调
     similarityEngine = new SemanticSimilarityEngine(config);
-    console.log('Offscreen: Starting engine initialization with progress tracking...');
+    console.log('离屏文档: 开始引擎初始化并跟踪进度...');
 
-    // Use enhanced initialization method (if progress callback is supported)
+    // 使用增强的初始化方法（如果支持进度回调）
     if (typeof (similarityEngine as any).initializeWithProgress === 'function') {
       await (similarityEngine as any).initializeWithProgress(progressCallback);
     } else {
-      // Fallback to standard initialization method
-      console.log('Offscreen: Using standard initialization (no progress callback support)');
+      // 回退到标准初始化方法
+      console.log('离屏文档: 使用标准初始化（不支持进度回调）');
       await updateModelStatus('downloading', 30);
       await similarityEngine.initialize();
       await updateModelStatus('ready', 100);
     }
 
-    // Save current configuration
+    // 保存当前配置
     currentModelConfig = { ...config };
 
-    console.log('Offscreen: Semantic similarity engine initialized successfully');
+    console.log('离屏文档: 语义相似度引擎初始化成功');
   } catch (error) {
-    console.error('Offscreen: Failed to initialize semantic similarity engine:', error);
-    // Update status to error
-    const errorMessage = error instanceof Error ? error.message : 'Unknown initialization error';
+    console.error('离屏文档: 初始化语义相似度引擎失败:', error);
+    // 更新状态为错误
+    const errorMessage = error instanceof Error ? error.message : '未知初始化错误';
     const errorType = analyzeErrorType(errorMessage);
     await updateModelStatus('error', 0, errorMessage, errorType);
-    // Clean up failed instance
+    // 清理失败的实例
     similarityEngine = null;
     currentModelConfig = null;
     throw error;
@@ -259,42 +257,42 @@ async function handleSimilarityEngineInit(config: any): Promise<void> {
 }
 
 /**
- * Clear vector data in IndexedDB
+ * 清除IndexedDB中的向量数据
  */
 async function clearVectorIndexedDB(): Promise<void> {
   try {
-    // Clear vector search related IndexedDB databases
+    // 清除向量搜索相关的IndexedDB数据库
     const dbNames = ['VectorSearchDB', 'ContentIndexerDB', 'SemanticSimilarityDB'];
 
     for (const dbName of dbNames) {
       try {
-        // Try to delete database
+        // 尝试删除数据库
         const deleteRequest = indexedDB.deleteDatabase(dbName);
         await new Promise<void>((resolve, _reject) => {
           deleteRequest.onsuccess = () => {
-            console.log(`Offscreen: Successfully deleted database: ${dbName}`);
+            console.log(`离屏文档: 成功删除数据库: ${dbName}`);
             resolve();
           };
           deleteRequest.onerror = () => {
-            console.warn(`Offscreen: Failed to delete database: ${dbName}`, deleteRequest.error);
+            console.warn(`离屏文档: 删除数据库失败: ${dbName}`, deleteRequest.error);
             resolve(); // 不阻塞其他数据库的清理
           };
           deleteRequest.onblocked = () => {
-            console.warn(`Offscreen: Database deletion blocked: ${dbName}`);
+            console.warn(`离屏文档: 数据库删除被阻塞: ${dbName}`);
             resolve(); // 不阻塞其他数据库的清理
           };
         });
       } catch (error) {
-        console.warn(`Offscreen: Error deleting database ${dbName}:`, error);
+        console.warn(`离屏文档: 删除数据库 ${dbName} 时出错:`, error);
       }
     }
   } catch (error) {
-    console.error('Offscreen: Failed to clear vector IndexedDB:', error);
+    console.error('离屏文档: 清除向量IndexedDB失败:', error);
     throw error;
   }
 }
 
-// Analyze error type
+// 分析错误类型
 function analyzeErrorType(errorMessage: string): 'network' | 'file' | 'unknown' {
   const message = errorMessage.toLowerCase();
 
@@ -323,7 +321,7 @@ function analyzeErrorType(errorMessage: string): 'network' | 'file' | 'unknown' 
   return 'unknown';
 }
 
-// Helper function to update model status
+// 更新模型状态的辅助函数
 async function updateModelStatus(
   status: string,
   progress: number,
@@ -340,83 +338,83 @@ async function updateModelStatus(
       errorType: errorType || '',
     };
 
-    // In offscreen document, update storage through message passing to background script
-    // because offscreen document may not have direct chrome.storage access
+    // 在离屏文档中，通过向后台脚本传递消息来更新存储
+    // 因为离屏文档可能没有直接的chrome.storage访问权限
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       await chrome.storage.local.set({ modelState });
     } else {
-      // If chrome.storage is not available, pass message to background script
-      console.log('Offscreen: chrome.storage not available, sending message to background');
+      // 如果chrome.storage不可用，向后台脚本传递消息
+      console.log('离屏文档: chrome.storage不可用，向后台发送消息');
       try {
         await chrome.runtime.sendMessage({
           type: BACKGROUND_MESSAGE_TYPES.UPDATE_MODEL_STATUS,
           modelState: modelState,
         });
       } catch (messageError) {
-        console.error('Offscreen: Failed to send status update message:', messageError);
+        console.error('离屏文档: 发送状态更新消息失败:', messageError);
       }
     }
   } catch (error) {
-    console.error('Offscreen: Failed to update model status:', error);
+    console.error('离屏文档: 更新模型状态失败:', error);
   }
 }
 
 /**
- * Batch compute semantic similarity
+ * 批量计算语义相似度
  */
 async function handleComputeSimilarityBatch(
   pairs: { text1: string; text2: string }[],
   options: Record<string, any> = {},
 ): Promise<number[]> {
   if (!similarityEngine) {
-    throw new Error('Similarity engine not initialized. Please reinitialize the engine.');
+    throw new Error('语义相似度引擎未初始化。请重新初始化引擎。');
   }
 
-  console.log(`Offscreen: Computing similarities for ${pairs.length} pairs`);
+  console.log(`离屏文档: 为 ${pairs.length} 对文本计算相似度`);
   const similarities = await similarityEngine.computeSimilarityBatch(pairs, options);
-  console.log('Offscreen: Similarity computation completed');
+  console.log('离屏文档: 相似度计算完成');
 
   return similarities;
 }
 
 /**
- * Get embedding vector for single text
+ * 获取单个文本的嵌入向量
  */
 async function handleGetEmbedding(
   text: string,
   options: Record<string, any> = {},
 ): Promise<Float32Array> {
   if (!similarityEngine) {
-    throw new Error('Similarity engine not initialized. Please reinitialize the engine.');
+    throw new Error('语义相似度引擎未初始化。请重新初始化引擎。');
   }
 
-  console.log(`Offscreen: Getting embedding for text: "${text.substring(0, 50)}..."`);
+  console.log(`离屏文档: 获取文本嵌入: "${text.substring(0, 50)}..."`);
   const embedding = await similarityEngine.getEmbedding(text, options);
-  console.log('Offscreen: Embedding computation completed');
+  console.log('离屏文档: 嵌入计算完成');
 
   return embedding;
 }
 
 /**
- * Batch get embedding vectors for texts
+ * 批量获取文本的嵌入向量
  */
 async function handleGetEmbeddingsBatch(
   texts: string[],
   options: Record<string, any> = {},
 ): Promise<Float32Array[]> {
   if (!similarityEngine) {
-    throw new Error('Similarity engine not initialized. Please reinitialize the engine.');
+    throw new Error('语义相似度引擎未初始化。请重新初始化引擎。');
   }
 
-  console.log(`Offscreen: Getting embeddings for ${texts.length} texts`);
+  console.log(`离屏文档: 获取 ${texts.length} 个文本的嵌入`);
   const embeddings = await similarityEngine.getEmbeddingsBatch(texts, options);
-  console.log('Offscreen: Batch embedding computation completed');
+  console.log('离屏文档: 批量嵌入计算完成');
 
   return embeddings;
 }
 
 /**
- * Get engine status
+ * 获取引擎状态
  */
 async function handleGetEngineStatus(): Promise<{
   isInitialized: boolean;
@@ -428,4 +426,4 @@ async function handleGetEngineStatus(): Promise<{
   };
 }
 
-console.log('Offscreen: Semantic similarity engine handler loaded');
+console.log('离屏文档: 语义相似度引擎处理器已加载');

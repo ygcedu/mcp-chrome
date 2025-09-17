@@ -91,7 +91,7 @@ export class ModelCacheManager {
             const metadata: CacheMetadata = await metadataResponse.json();
             timestamp = metadata.timestamp;
           } catch (error) {
-            console.warn('Failed to parse cache metadata:', error);
+            console.warn('解析缓存元数据失败:', error);
           }
         }
 
@@ -117,7 +117,7 @@ export class ModelCacheManager {
     }
 
     console.log(
-      `Cache size (${(totalSize / 1024 / 1024).toFixed(2)}MB) + new data (${(newDataSize / 1024 / 1024).toFixed(2)}MB) exceeds limit (${MAX_CACHE_SIZE_MB}MB), cleaning up...`,
+      `缓存大小 (${(totalSize / 1024 / 1024).toFixed(2)}MB) + 新数据 (${(newDataSize / 1024 / 1024).toFixed(2)}MB) 超过限制 (${MAX_CACHE_SIZE_MB}MB)，正在清理...`,
     );
 
     const expiredEntries: CacheEntryDetails[] = [];
@@ -150,9 +150,7 @@ export class ModelCacheManager {
       await cache.delete(entry.url);
       await cache.delete(this.getCacheMetadataKey(entry.url));
       currentSize -= entry.size;
-      console.log(
-        `Cleaned up expired cache entry: ${entry.url} (${(entry.size / 1024 / 1024).toFixed(2)}MB)`,
-      );
+      console.log(`清理过期缓存条目: ${entry.url} (${(entry.size / 1024 / 1024).toFixed(2)}MB)`);
     }
 
     if (currentSize + newDataSize > maxSizeBytes) {
@@ -164,13 +162,11 @@ export class ModelCacheManager {
         await cache.delete(entry.url);
         await cache.delete(this.getCacheMetadataKey(entry.url));
         currentSize -= entry.size;
-        console.log(
-          `Cleaned up old cache entry: ${entry.url} (${(entry.size / 1024 / 1024).toFixed(2)}MB)`,
-        );
+        console.log(`清理旧缓存条目: ${entry.url} (${(entry.size / 1024 / 1024).toFixed(2)}MB)`);
       }
     }
 
-    console.log(`Cache cleanup complete. New size: ${(currentSize / 1024 / 1024).toFixed(2)}MB`);
+    console.log(`缓存清理完成。新大小: ${(currentSize / 1024 / 1024).toFixed(2)}MB`);
   }
 
   public async storeCacheMetadata(modelUrl: string, size: number): Promise<void> {
@@ -202,20 +198,20 @@ export class ModelCacheManager {
       try {
         const metadata: CacheMetadata = await metadataResponse.json();
         if (!this.isCacheExpired(metadata)) {
-          console.log('Model found in cache and not expired. Loading from cache.');
+          console.log('在缓存中找到模型且未过期。从缓存加载。');
           return cachedResponse.arrayBuffer();
         } else {
-          console.log('Cached model is expired, removing...');
+          console.log('缓存模型已过期，正在移除...');
           await this.deleteCacheEntry(modelUrl);
           return null;
         }
       } catch (error) {
-        console.warn('Failed to parse cache metadata, treating as expired:', error);
+        console.warn('解析缓存元数据失败，视为已过期:', error);
         await this.deleteCacheEntry(modelUrl);
         return null;
       }
     } else {
-      console.log('Cached model has no metadata, treating as expired...');
+      console.log('缓存模型没有元数据，视为已过期...');
       await this.deleteCacheEntry(modelUrl);
       return null;
     }
@@ -230,9 +226,7 @@ export class ModelCacheManager {
     await cache.put(modelUrl, response);
     await this.storeCacheMetadata(modelUrl, data.byteLength);
 
-    console.log(
-      `Model cached successfully (${(data.byteLength / 1024 / 1024).toFixed(2)}MB): ${modelUrl}`,
-    );
+    console.log(`模型缓存成功 (${(data.byteLength / 1024 / 1024).toFixed(2)}MB): ${modelUrl}`);
   }
 
   public async deleteCacheEntry(modelUrl: string): Promise<void> {
@@ -249,7 +243,7 @@ export class ModelCacheManager {
       await cache.delete(request);
     }
 
-    console.log('All model cache entries cleared');
+    console.log('所有模型缓存条目已清除');
   }
 
   public async getCacheStats(): Promise<CacheStats> {
@@ -298,7 +292,7 @@ export class ModelCacheManager {
 
   public async manualCleanup(): Promise<void> {
     await this.cleanupCacheOnDemand(0);
-    console.log('Manual cache cleanup completed');
+    console.log('手动缓存清理完成');
   }
 
   /**
@@ -321,7 +315,7 @@ export class ModelCacheManager {
           const metadata: CacheMetadata = await metadataResponse.json();
           return !this.isCacheExpired(metadata);
         } catch (error) {
-          console.warn('Failed to parse cache metadata for cache check:', error);
+          console.warn('缓存检查时解析缓存元数据失败:', error);
           return false;
         }
       } else {
@@ -329,7 +323,7 @@ export class ModelCacheManager {
         return false;
       }
     } catch (error) {
-      console.error('Error checking model cache:', error);
+      console.error('检查模型缓存时出错:', error);
       return false;
     }
   }
@@ -362,7 +356,7 @@ export class ModelCacheManager {
 
       return false;
     } catch (error) {
-      console.error('Error checking for valid cache:', error);
+      console.error('检查有效缓存时出错:', error);
       return false;
     }
   }

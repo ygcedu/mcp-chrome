@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 (() => {
-  // Prevent duplicate injection of the bridge itself.
+  // 防止重复注入桥接本身。
   if (window.__INJECT_SCRIPT_TOOL_UNIVERSAL_BRIDGE_LOADED__) return;
   window.__INJECT_SCRIPT_TOOL_UNIVERSAL_BRIDGE_LOADED__ = true;
   const EVENT_NAME = {
@@ -12,15 +12,15 @@
   const pendingRequests = new Map();
 
   const messageHandler = (request, _sender, sendResponse) => {
-    // --- Lifecycle Command ---
+    // --- 生命周期命令 ---
     if (request.type === EVENT_NAME.CLEANUP) {
       window.dispatchEvent(new CustomEvent(EVENT_NAME.CLEANUP));
-      // Acknowledge cleanup signal received, but don't hold the connection.
+      // 确认收到清理信号，但不保持连接。
       sendResponse({ success: true });
       return true;
     }
 
-    // --- Execution Command for MAIN world ---
+    // --- MAIN世界的执行命令 ---
     if (request.targetWorld === 'MAIN') {
       const requestId = `req-${Date.now()}-${Math.random()}`;
       pendingRequests.set(requestId, sendResponse);
@@ -34,15 +34,15 @@
           },
         }),
       );
-      return true; // Async response is expected.
+      return true; // 期望异步响应。
     }
-    // Note: Requests for ISOLATED world are handled by the user's isolatedWorldCode script directly.
-    // This listener won't process them unless it's the only script in ISOLATED world.
+    // 注意：ISOLATED世界的请求由用户的isolatedWorldCode脚本直接处理。
+    // 除非它是ISOLATED世界中的唯一脚本，否则此监听器不会处理它们。
   };
 
   chrome.runtime.onMessage.addListener(messageHandler);
 
-  // Listen for responses coming back from the MAIN world.
+  // 监听来自MAIN世界的响应。
   const responseHandler = (event) => {
     const { requestId, data, error } = event.detail;
     if (pendingRequests.has(requestId)) {
@@ -53,8 +53,8 @@
   };
   window.addEventListener(EVENT_NAME.RESPONSE, responseHandler);
 
-  // --- Self Cleanup ---
-  // When the cleanup signal arrives, this bridge must also clean itself up.
+  // --- 自我清理 ---
+  // 当清理信号到达时，此桥接也必须清理自己。
   const cleanupHandler = () => {
     chrome.runtime.onMessage.removeListener(messageHandler);
     window.removeEventListener(EVENT_NAME.RESPONSE, responseHandler);

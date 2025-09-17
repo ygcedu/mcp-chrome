@@ -1,16 +1,16 @@
 /**
- * Consolidated message type constants for Chrome extension communication
- * Note: Native message types are imported from the shared package
+ * Chrome 扩展通信的统一消息类型常量
+ * 注意：原生消息类型从共享包中导入
  */
 
-// Message targets for routing
+// 路由的消息目标
 export enum MessageTarget {
   Offscreen = 'offscreen',
   ContentScript = 'content_script',
   Background = 'background',
 }
 
-// Background script message types
+// 后台脚本消息类型
 export const BACKGROUND_MESSAGE_TYPES = {
   SWITCH_SEMANTIC_MODEL: 'switch_semantic_model',
   GET_MODEL_STATUS: 'get_model_status',
@@ -23,7 +23,7 @@ export const BACKGROUND_MESSAGE_TYPES = {
   INITIALIZE_SEMANTIC_ENGINE: 'initialize_semantic_engine',
 } as const;
 
-// Offscreen message types
+// 离屏消息类型
 export const OFFSCREEN_MESSAGE_TYPES = {
   SIMILARITY_ENGINE_INIT: 'similarityEngineInit',
   SIMILARITY_ENGINE_COMPUTE: 'similarityEngineCompute',
@@ -31,7 +31,7 @@ export const OFFSCREEN_MESSAGE_TYPES = {
   SIMILARITY_ENGINE_STATUS: 'similarityEngineStatus',
 } as const;
 
-// Content script message types
+// 内容脚本消息类型
 export const CONTENT_MESSAGE_TYPES = {
   WEB_FETCHER_GET_TEXT_CONTENT: 'webFetcherGetTextContent',
   WEB_FETCHER_GET_HTML_CONTENT: 'getHtmlContent',
@@ -43,36 +43,36 @@ export const CONTENT_MESSAGE_TYPES = {
   INTERACTIVE_ELEMENTS_HELPER_PING: 'interactive_elements_helper_ping',
 } as const;
 
-// Tool action message types (for chrome.runtime.sendMessage)
+// 工具操作消息类型（用于 chrome.runtime.sendMessage）
 export const TOOL_MESSAGE_TYPES = {
-  // Screenshot related
+  // 截图相关
   SCREENSHOT_PREPARE_PAGE_FOR_CAPTURE: 'preparePageForCapture',
   SCREENSHOT_GET_PAGE_DETAILS: 'getPageDetails',
   SCREENSHOT_GET_ELEMENT_DETAILS: 'getElementDetails',
   SCREENSHOT_SCROLL_PAGE: 'scrollPage',
   SCREENSHOT_RESET_PAGE_AFTER_CAPTURE: 'resetPageAfterCapture',
 
-  // Web content fetching
+  // 网页内容获取
   WEB_FETCHER_GET_HTML_CONTENT: 'getHtmlContent',
   WEB_FETCHER_GET_TEXT_CONTENT: 'getTextContent',
 
-  // User interactions
+  // 用户交互
   CLICK_ELEMENT: 'clickElement',
   FILL_ELEMENT: 'fillElement',
   SIMULATE_KEYBOARD: 'simulateKeyboard',
 
-  // Interactive elements
+  // 交互元素
   GET_INTERACTIVE_ELEMENTS: 'getInteractiveElements',
 
-  // Network requests
+  // 网络请求
   NETWORK_SEND_REQUEST: 'sendPureNetworkRequest',
 
-  // Semantic similarity engine
+  // 语义相似度引擎
   SIMILARITY_ENGINE_INIT: 'similarityEngineInit',
   SIMILARITY_ENGINE_COMPUTE_BATCH: 'similarityEngineComputeBatch',
 } as const;
 
-// Type unions for type safety
+// 类型安全的类型联合
 export type BackgroundMessageType =
   (typeof BACKGROUND_MESSAGE_TYPES)[keyof typeof BACKGROUND_MESSAGE_TYPES];
 export type OffscreenMessageType =
@@ -80,35 +80,35 @@ export type OffscreenMessageType =
 export type ContentMessageType = (typeof CONTENT_MESSAGE_TYPES)[keyof typeof CONTENT_MESSAGE_TYPES];
 export type ToolMessageType = (typeof TOOL_MESSAGE_TYPES)[keyof typeof TOOL_MESSAGE_TYPES];
 
-// Legacy enum for backward compatibility (will be deprecated)
+// 向后兼容的遗留枚举（将被弃用）
 export enum SendMessageType {
-  // Screenshot related message types
+  // 截图相关消息类型
   ScreenshotPreparePageForCapture = 'preparePageForCapture',
   ScreenshotGetPageDetails = 'getPageDetails',
   ScreenshotGetElementDetails = 'getElementDetails',
   ScreenshotScrollPage = 'scrollPage',
   ScreenshotResetPageAfterCapture = 'resetPageAfterCapture',
 
-  // Web content fetching related message types
+  // 网页内容获取相关消息类型
   WebFetcherGetHtmlContent = 'getHtmlContent',
   WebFetcherGetTextContent = 'getTextContent',
 
-  // Click related message types
+  // 点击相关消息类型
   ClickElement = 'clickElement',
 
-  // Input filling related message types
+  // 输入填充相关消息类型
   FillElement = 'fillElement',
 
-  // Interactive elements related message types
+  // 交互元素相关消息类型
   GetInteractiveElements = 'getInteractiveElements',
 
-  // Network request capture related message types
+  // 网络请求捕获相关消息类型
   NetworkSendRequest = 'sendPureNetworkRequest',
 
-  // Keyboard event related message types
+  // 键盘事件相关消息类型
   SimulateKeyboard = 'simulateKeyboard',
 
-  // Semantic similarity engine related message types
+  // 语义相似度引擎相关消息类型
   SimilarityEngineInit = 'similarityEngineInit',
   SimilarityEngineComputeBatch = 'similarityEngineComputeBatch',
 }

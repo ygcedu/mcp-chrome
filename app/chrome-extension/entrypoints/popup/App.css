@@ -80,19 +80,19 @@
   border-radius: 50%;
 }
 
-.status-dot.emerald500 {
+.status-dot.bg-emerald-500 {
   background-color: #10b981;
 }
 
-.status-dot.red500 {
+.status-dot.bg-red-500 {
   background-color: #ef4444;
 }
 
-.status-dot.yellow500 {
+.status-dot.bg-yellow-500 {
   background-color: #eab308;
 }
 
-.status-dot.gray500 {
+.status-dot.bg-gray-500 {
   background-color: #6b7280;
 }
 

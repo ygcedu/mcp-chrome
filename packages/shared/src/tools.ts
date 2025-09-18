@@ -25,6 +25,7 @@ export const TOOL_NAMES = {
     INJECT_SCRIPT: 'chrome_inject_script',
     SEND_COMMAND_TO_INJECT_SCRIPT: 'chrome_send_command_to_inject_script',
     CONSOLE: 'chrome_console',
+    USER_SELECTOR: 'chrome_user_selector',
   },
 };
 
@@ -529,6 +530,36 @@ export const TOOL_SCHEMAS: Tool[] = [
         maxMessages: {
           type: 'number',
           description: 'Maximum number of console messages to capture (default: 100)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.USER_SELECTOR,
+    description:
+      'Allow user to manually select elements on the page when automated selection fails',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        prompt: {
+          type: 'string',
+          description:
+            'Custom prompt message to show to the user (default: "请点击页面上您想要选择的元素")',
+        },
+        timeout: {
+          type: 'number',
+          description: 'Timeout in milliseconds for user selection (default: 30000)',
+        },
+        highlightMode: {
+          type: 'string',
+          enum: ['border', 'overlay', 'both'],
+          description: 'How to highlight elements during selection (default: "both")',
+        },
+        selectionType: {
+          type: 'string',
+          enum: ['single', 'multiple'],
+          description: 'Whether to allow selecting single or multiple elements (default: "single")',
         },
       },
       required: [],

@@ -26,6 +26,7 @@ export const TOOL_NAMES = {
     SEND_COMMAND_TO_INJECT_SCRIPT: 'chrome_send_command_to_inject_script',
     CONSOLE: 'chrome_console',
     USER_SELECTOR: 'chrome_user_selector',
+    DRAG: 'chrome_drag',
   },
 };
 
@@ -533,6 +534,59 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.DRAG,
+    description: 'Simulate drag-and-drop within the current page (by selector or coordinates)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        fromSelector: { type: 'string', description: 'CSS selector of the drag start element' },
+        toSelector: { type: 'string', description: 'CSS selector of the drop target element' },
+        from: {
+          type: 'object',
+          description: 'Start coordinates if not using fromSelector',
+          properties: { x: { type: 'number' }, y: { type: 'number' } },
+          required: ['x', 'y'],
+        },
+        to: {
+          type: 'object',
+          description: 'End coordinates if not using toSelector',
+          properties: { x: { type: 'number' }, y: { type: 'number' } },
+          required: ['x', 'y'],
+        },
+        durationMs: { type: 'number', description: 'Total drag duration in ms (default: 300)' },
+        steps: { type: 'number', description: 'Number of interpolation steps (default: 20)' },
+        button: {
+          type: 'string',
+          enum: ['left', 'middle', 'right'],
+          description: 'Mouse button (default: left)',
+        },
+        holdDelayMs: {
+          type: 'number',
+          description: 'Delay after press before moving (default: 50)',
+        },
+        releaseDelayMs: {
+          type: 'number',
+          description: 'Delay before release at end (default: 30)',
+        },
+        usePointerEvents: {
+          type: 'boolean',
+          description: 'Use Pointer events when available (default: true)',
+        },
+        scrollIntoView: {
+          type: 'boolean',
+          description: 'Scroll start/end into view (default: true)',
+        },
+      },
+      anyOf: [
+        { required: ['fromSelector', 'toSelector'] },
+        { required: ['from', 'to'] },
+        { required: ['fromSelector', 'to'] },
+        { required: ['from', 'toSelector'] },
+      ],
+      additionalProperties: false,
     },
   },
   {

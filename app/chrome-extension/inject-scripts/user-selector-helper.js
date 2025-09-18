@@ -59,8 +59,8 @@
     tipBar.textContent =
       promptText +
       (selectionType === 'multiple'
-        ? '（按 Enter 确认，Esc 取消，多选：点击逐个添加）'
-        : '（按 Enter 确认，Esc 取消）');
+        ? '（按 Enter 确认，Esc 取消，多选：点击元素逐个添加）'
+        : '（点击元素确认，Esc 取消）');
 
     overlay.appendChild(highlightBox);
     document.body.appendChild(overlay);

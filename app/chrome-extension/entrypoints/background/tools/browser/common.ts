@@ -68,52 +68,61 @@ class NavigateTool extends BaseBrowserToolExecutor {
       }
 
       // 1. 检查 URL 是否已经打开
-      // 获取所有标签页并手动比较 URL
-      console.log(`检查 URL 是否已经打开: ${url}`);
-      // 获取所有标签页
-      const allTabs = await chrome.tabs.query({});
-      // 手动过滤匹配的标签页
-      const tabs = allTabs.filter((tab) => {
-        // 规范化 URL 以进行比较（移除末尾斜杠）
-        const tabUrl = tab.url?.endsWith('/') ? tab.url.slice(0, -1) : tab.url;
-        const targetUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-        return tabUrl === targetUrl;
-      });
-      console.log(`找到 ${tabs.length} 个匹配的标签页`);
+      // 如果用户明确指定了 width 或 height，则跳过现有标签页检查，直接创建新窗口
+      const shouldCreateNewWindow = typeof width === 'number' || typeof height === 'number';
 
-      if (tabs && tabs.length > 0) {
-        const existingTab = tabs[0];
-        console.log(`URL 已在标签页中打开 ID: ${existingTab.id}, 窗口 ID: ${existingTab.windowId}`);
+      if (!shouldCreateNewWindow) {
+        // 只有在没有指定尺寸的情况下才检查现有标签页
+        console.log(`检查 URL 是否已经打开: ${url}`);
+        // 获取所有标签页
+        const allTabs = await chrome.tabs.query({});
+        // 手动过滤匹配的标签页
+        const tabs = allTabs.filter((tab) => {
+          // 规范化 URL 以进行比较（移除末尾斜杠）
+          const tabUrl = tab.url?.endsWith('/') ? tab.url.slice(0, -1) : tab.url;
+          const targetUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+          return tabUrl === targetUrl;
+        });
+        console.log(`找到 ${tabs.length} 个匹配的标签页`);
 
-        if (existingTab.id !== undefined) {
-          // 激活标签页
-          await chrome.tabs.update(existingTab.id, { active: true });
+        if (tabs && tabs.length > 0) {
+          const existingTab = tabs[0];
+          console.log(
+            `URL 已在标签页中打开 ID: ${existingTab.id}, 窗口 ID: ${existingTab.windowId}`,
+          );
 
-          if (existingTab.windowId !== undefined) {
-            // 将包含此标签页的窗口置于前台并聚焦
-            await chrome.windows.update(existingTab.windowId, { focused: true });
+          if (existingTab.id !== undefined) {
+            // 激活标签页
+            await chrome.tabs.update(existingTab.id, { active: true });
+
+            if (existingTab.windowId !== undefined) {
+              // 将包含此标签页的窗口置于前台并聚焦
+              await chrome.windows.update(existingTab.windowId, { focused: true });
+            }
+
+            console.log(`已激活现有标签页 ID: ${existingTab.id}`);
+            // 获取更新的标签页信息并返回
+            const updatedTab = await chrome.tabs.get(existingTab.id);
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify({
+                    success: true,
+                    message: '已激活现有标签页',
+                    tabId: updatedTab.id,
+                    windowId: updatedTab.windowId,
+                    url: updatedTab.url,
+                  }),
+                },
+              ],
+              isError: false,
+            };
           }
-
-          console.log(`已激活现有标签页 ID: ${existingTab.id}`);
-          // 获取更新的标签页信息并返回
-          const updatedTab = await chrome.tabs.get(existingTab.id);
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  message: '已激活现有标签页',
-                  tabId: updatedTab.id,
-                  windowId: updatedTab.windowId,
-                  url: updatedTab.url,
-                }),
-              },
-            ],
-            isError: false,
-          };
         }
+      } else {
+        console.log(`用户指定了窗口尺寸 (width: ${width}, height: ${height})，将创建新窗口`);
       }
 
       // 2. 如果 URL 尚未打开，根据选项决定如何打开

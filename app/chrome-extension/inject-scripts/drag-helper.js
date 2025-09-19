@@ -144,22 +144,36 @@ if (window.__DRAG_HELPER_INITIALIZED__) {
   };
 
   async function performDrag(payload) {
-    const { from, to, scrollIntoView = true } = payload || {};
+    const { from, to, fromElement, toElement, scrollIntoView = true } = payload || {};
 
-    if (!from || !to) {
-      throw new Error(
-        'Both from and to parameters are required. They can be either coordinates {x, y} or element selector strings.',
-      );
+    // 确定实际的起始和结束位置
+    let actualFrom, actualTo;
+
+    // 优先使用 fromElement 和 toElement，如果没有则使用 from 和 to
+    if (fromElement) {
+      actualFrom = fromElement;
+    } else if (from) {
+      actualFrom = from;
+    } else {
+      throw new Error('必须提供 from (坐标对象 {x, y}) 或 fromElement (元素选择器字符串) 参数');
     }
 
-    console.log('开始拖拽操作:', { from, to });
+    if (toElement) {
+      actualTo = toElement;
+    } else if (to) {
+      actualTo = to;
+    } else {
+      throw new Error('必须提供 to (坐标对象 {x, y}) 或 toElement (元素选择器字符串) 参数');
+    }
 
-    const start = coordsFromEither(from);
-    const end = coordsFromEither(to);
+    console.log('开始拖拽操作:', { actualFrom, actualTo });
+
+    const start = coordsFromEither(actualFrom);
+    const end = coordsFromEither(actualTo);
 
     // 根据参数类型获取目标元素
-    const startTarget = getTargetBySelectorOrPoint(from, start);
-    const endTarget = getTargetBySelectorOrPoint(to, end);
+    const startTarget = getTargetBySelectorOrPoint(actualFrom, start);
+    const endTarget = getTargetBySelectorOrPoint(actualTo, end);
 
     console.log('拖拽目标元素:', {
       startTarget: startTarget.tagName,

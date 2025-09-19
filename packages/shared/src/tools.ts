@@ -543,41 +543,35 @@ export const TOOL_SCHEMAS: Tool[] = [
       type: 'object',
       properties: {
         from: {
-          oneOf: [
-            {
-              type: 'string',
-              description: 'CSS selector of the drag start element',
-            },
-            {
-              type: 'object',
-              description: 'Start coordinates {x, y}',
-              properties: { x: { type: 'number' }, y: { type: 'number' } },
-              required: ['x', 'y'],
-              additionalProperties: false,
-            },
-          ],
+          type: 'object',
+          description: 'Start coordinates {x, y}',
+          properties: { x: { type: 'number' }, y: { type: 'number' } },
+          required: ['x', 'y'],
+          additionalProperties: false,
         },
         to: {
-          oneOf: [
-            {
-              type: 'string',
-              description: 'CSS selector of the drop target element',
-            },
-            {
-              type: 'object',
-              description: 'End coordinates {x, y}',
-              properties: { x: { type: 'number' }, y: { type: 'number' } },
-              required: ['x', 'y'],
-              additionalProperties: false,
-            },
-          ],
+          type: 'object',
+          description: 'End coordinates {x, y}',
+          properties: { x: { type: 'number' }, y: { type: 'number' } },
+          required: ['x', 'y'],
+          additionalProperties: false,
+        },
+        fromElement: {
+          type: 'string',
+          description:
+            'CSS selector of the drag start element (alternative to from when using element selector)',
+        },
+        toElement: {
+          type: 'string',
+          description:
+            'CSS selector of the drop target element (alternative to to when using element selector)',
         },
         scrollIntoView: {
           type: 'boolean',
           description: 'Scroll start/end into view (default: true)',
         },
       },
-      required: ['from', 'to'],
+      required: [],
       additionalProperties: false,
     },
   },

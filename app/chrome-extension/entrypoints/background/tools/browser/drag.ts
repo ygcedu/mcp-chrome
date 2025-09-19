@@ -8,8 +8,10 @@ interface DragPoint {
   y: number;
 }
 interface DragParams {
-  from: string | DragPoint;
-  to: string | DragPoint;
+  from?: DragPoint;
+  to?: DragPoint;
+  fromElement?: string;
+  toElement?: string;
   scrollIntoView?: boolean;
 }
 
@@ -27,12 +29,20 @@ class DragTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.DRAG;
 
   async execute(args: DragParams): Promise<ToolResult> {
-    const { from, to, scrollIntoView = true } = args || {};
+    const { from, to, fromElement, toElement, scrollIntoView = true } = args || {};
 
-    if (!from || !to) {
+    // 检查是否至少提供了一组有效的参数
+    if (!from && !fromElement) {
       return createErrorResponse(
         ERROR_MESSAGES.INVALID_PARAMETERS +
-          ': 必须提供 from 和 to 参数，可以是坐标对象 {x, y} 或元素选择器字符串',
+          ': 必须提供 from (坐标对象 {x, y}) 或 fromElement (元素选择器字符串) 参数',
+      );
+    }
+
+    if (!to && !toElement) {
+      return createErrorResponse(
+        ERROR_MESSAGES.INVALID_PARAMETERS +
+          ': 必须提供 to (坐标对象 {x, y}) 或 toElement (元素选择器字符串) 参数',
       );
     }
 
@@ -55,6 +65,8 @@ class DragTool extends BaseBrowserToolExecutor {
         options: {
           from,
           to,
+          fromElement,
+          toElement,
           scrollIntoView,
         },
       });

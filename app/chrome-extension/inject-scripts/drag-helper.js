@@ -17,8 +17,6 @@ if (window.__DRAG_HELPER_INITIALIZED__) {
 } else {
   window.__DRAG_HELPER_INITIALIZED__ = true;
 
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
   const centerOf = (el) => {
     const rect = el.getBoundingClientRect();
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
@@ -112,31 +110,41 @@ if (window.__DRAG_HELPER_INITIALIZED__) {
   };
 
   // 可选滚动到视图中心
-  const maybeScrollIntoView = async (el, enabled) => {
-    if (!enabled || !el || !el.scrollIntoView) return;
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    await sleep(100);
+  const maybeScrollIntoView = (el, enabled) => {
+    if (enabled && el && el.scrollIntoView) {
+      el.scrollIntoView({ block: 'center', behavior: 'instant' });
+    }
   };
 
-  // 线性插值拖拽路径生成与移动
-  const moveAlongPath = async (target, start, end, steps, stepDelay) => {
-    for (let i = 1; i <= steps; i++) {
-      const t = i / steps;
-      const x = start.x + (end.x - start.x) * t;
-      const y = start.y + (end.y - start.y) * t;
-      dispatchBothEvents(target, 'mousemove', x, y);
-      if (stepDelay > 0) await sleep(stepDelay);
-    }
+  // 基于时间的平滑拖拽路径移动
+  const moveAlongPath = (target, start, end, duration = 300) => {
+    return new Promise((resolve) => {
+      const startTime = performance.now();
+
+      const animate = (currentTime) => {
+        const elapsed = currentTime - startTime;
+
+        if (elapsed >= duration) {
+          // 动画结束，移动到最终位置
+          dispatchBothEvents(target, 'mousemove', end.x, end.y);
+          resolve();
+        } else {
+          // 线性插值计算当前位置
+          const t = elapsed / duration;
+          const x = start.x + (end.x - start.x) * t;
+          const y = start.y + (end.y - start.y) * t;
+
+          dispatchBothEvents(target, 'mousemove', x, y);
+          requestAnimationFrame(animate);
+        }
+      };
+
+      requestAnimationFrame(animate);
+    });
   };
 
   async function performDrag(payload) {
     const { from, to, scrollIntoView = true } = payload || {};
-
-    // 固定的拖拽参数
-    const durationMs = 300;
-    const steps = 20;
-    const holdDelayMs = 50;
-    const releaseDelayMs = 30;
 
     if (!from || !to) {
       throw new Error(
@@ -158,8 +166,8 @@ if (window.__DRAG_HELPER_INITIALIZED__) {
       endTarget: endTarget.tagName,
     });
 
-    await maybeScrollIntoView(startTarget, scrollIntoView);
-    await maybeScrollIntoView(endTarget, scrollIntoView);
+    // 只滚动起始元素到视图中心
+    maybeScrollIntoView(startTarget, scrollIntoView);
 
     // 检查元素是否具有 draggable 属性
     const isDraggable = startTarget.draggable || startTarget.getAttribute('draggable') === 'true';
@@ -188,19 +196,21 @@ if (window.__DRAG_HELPER_INITIALIZED__) {
       dispatchBothEvents(startTarget, 'mousemove', start.x, start.y);
       dispatchBothEvents(startTarget, 'mousedown', start.x, start.y);
 
-      if (holdDelayMs > 0) await sleep(holdDelayMs);
-
-      // 阶段2: 拖拽移动
+      // 阶段2: 拖拽移动（在下一帧开始）
       console.log('阶段2: 拖拽移动');
-      const stepDelay = Math.max(1, Math.floor(durationMs / Math.max(1, steps)));
-      await moveAlongPath(startTarget, start, end, steps, stepDelay);
-
-      if (releaseDelayMs > 0) await sleep(releaseDelayMs);
-
-      // 阶段3: 释放和放置
-      console.log('阶段3: 鼠标释放');
-      dispatchBothEvents(endTarget, 'mouseup', end.x, end.y);
-      dispatchBothEvents(endTarget, 'click', end.x, end.y);
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          moveAlongPath(startTarget, start, end).then(() => {
+            // 阶段3: 释放和放置（在拖拽完成后的下一帧）
+            console.log('阶段3: 鼠标释放');
+            requestAnimationFrame(() => {
+              dispatchBothEvents(endTarget, 'mouseup', end.x, end.y);
+              dispatchBothEvents(endTarget, 'click', end.x, end.y);
+              resolve();
+            });
+          });
+        });
+      });
       console.log('拖拽操作完成');
     }
 

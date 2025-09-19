@@ -13,6 +13,16 @@ interface DragParams {
   scrollIntoView?: boolean;
 }
 
+async function getLastTab() {
+  // 获取当前窗口的所有标签页
+  const allTabs = await chrome.tabs.query({ currentWindow: true });
+
+  // 找到最后一个标签页（index最大的）
+  const lastTab = allTabs.reduce((prev, current) => (current.index > prev.index ? current : prev));
+
+  return lastTab;
+}
+
 class DragTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.DRAG;
 
@@ -29,6 +39,10 @@ class DragTool extends BaseBrowserToolExecutor {
     try {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       const tab = tabs[0];
+
+      // 用最后一个页面测试
+      // const tab = await getLastTab();
+
       if (!tab || !tab.id) {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
       }

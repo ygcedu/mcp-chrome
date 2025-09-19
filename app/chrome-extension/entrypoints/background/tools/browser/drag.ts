@@ -8,14 +8,8 @@ interface DragPoint {
   y: number;
 }
 interface DragParams {
-  fromSelector?: string;
-  toSelector?: string;
-  from?: DragPoint;
-  to?: DragPoint;
-  durationMs?: number;
-  steps?: number;
-  holdDelayMs?: number;
-  releaseDelayMs?: number;
+  from: string | DragPoint;
+  to: string | DragPoint;
   scrollIntoView?: boolean;
 }
 
@@ -23,36 +17,14 @@ class DragTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.DRAG;
 
   async execute(args: DragParams): Promise<ToolResult> {
-    const {
-      fromSelector,
-      toSelector,
-      from,
-      to,
-      durationMs = 300,
-      steps = 20,
-      holdDelayMs = 50,
-      releaseDelayMs = 30,
-      scrollIntoView = true,
-    } = args || {};
+    const { from, to, scrollIntoView = true } = args || {};
 
-    const hasSelectorPair = !!(fromSelector && toSelector);
-    const hasPointPair = !!(from && to);
-    const hasMixedFromSelectorToPoint = !!(fromSelector && to);
-    const hasMixedFromPointToSelector = !!(from && toSelector);
-
-    if (
-      !hasSelectorPair &&
-      !hasPointPair &&
-      !hasMixedFromSelectorToPoint &&
-      !hasMixedFromPointToSelector
-    ) {
+    if (!from || !to) {
       return createErrorResponse(
         ERROR_MESSAGES.INVALID_PARAMETERS +
-          ': 必须提供 (fromSelector,toSelector) 或 (from,to) 或 (fromSelector,to) 或 (from,toSelector)',
+          ': 必须提供 from 和 to 参数，可以是坐标对象 {x, y} 或元素选择器字符串',
       );
     }
-
-    // 统一成 drag-helper 期望的字段名(fromSelector/toSelector 或 from/to)，混合模式无需转换，drag-helper 会自行解析
 
     try {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -67,14 +39,8 @@ class DragTool extends BaseBrowserToolExecutor {
       const result = await this.sendMessageToTab(tab.id, {
         action: 'dragElement',
         options: {
-          fromSelector,
-          toSelector,
           from,
           to,
-          durationMs,
-          steps,
-          holdDelayMs,
-          releaseDelayMs,
           scrollIntoView,
         },
       });

@@ -1,4 +1,18 @@
 /* eslint-disable */
+/**
+ * Drag Helper - 统一拖拽接口
+ *
+ * API 说明:
+ * - from: 拖拽起始位置，可以是:
+ *   - 坐标对象: {x: number, y: number}
+ *   - 元素选择器字符串: 'button', '#myId', '.myClass' 等
+ * - to: 拖拽结束位置，格式同 from
+ *
+ * 示例:
+ * performDrag({ from: {x: 100, y: 200}, to: '#target' })
+ * performDrag({ from: '.source', to: {x: 300, y: 400} })
+ * performDrag({ from: '#source', to: '#target' })
+ */
 if (window.__DRAG_HELPER_INITIALIZED__) {
 } else {
   window.__DRAG_HELPER_INITIALIZED__ = true;
@@ -16,10 +30,16 @@ if (window.__DRAG_HELPER_INITIALIZED__) {
     return el;
   };
 
-  const coordsFromEither = (point, selector) => {
-    if (point && typeof point.x === 'number' && typeof point.y === 'number') return point;
-    if (selector) return centerOf(elementFromSelector(selector));
-    throw new Error('Either coordinates or selector must be provided.');
+  const coordsFromEither = (fromOrTo) => {
+    // 如果是坐标对象 {x, y}
+    if (fromOrTo && typeof fromOrTo.x === 'number' && typeof fromOrTo.y === 'number') {
+      return fromOrTo;
+    }
+    // 如果是字符串选择器
+    if (typeof fromOrTo === 'string') {
+      return centerOf(elementFromSelector(fromOrTo));
+    }
+    throw new Error('from/to must be either coordinates {x, y} or element selector string.');
   };
 
   const dispatchPointer = (el, type, x, y) => {
@@ -77,15 +97,17 @@ if (window.__DRAG_HELPER_INITIALIZED__) {
   };
 
   // 根据选择器或坐标获取目标元素（含回退）
-  const getTargetBySelectorOrPoint = (selector, point) => {
-    if (selector) {
+  const getTargetBySelectorOrPoint = (fromOrTo, point) => {
+    // 如果是字符串选择器
+    if (typeof fromOrTo === 'string') {
       try {
-        return elementFromSelector(selector);
+        return elementFromSelector(fromOrTo);
       } catch (e) {
         console.warn('选择器未找到元素，使用坐标定位:', e.message);
         return document.elementFromPoint(point.x, point.y) || document.body;
       }
     }
+    // 如果是坐标对象，直接使用坐标定位
     return document.elementFromPoint(point.x, point.y) || document.body;
   };
 
@@ -108,26 +130,28 @@ if (window.__DRAG_HELPER_INITIALIZED__) {
   };
 
   async function performDrag(payload) {
-    const {
-      fromSelector,
-      toSelector,
-      from,
-      to,
-      durationMs = 300,
-      steps = 20,
-      holdDelayMs = 50,
-      releaseDelayMs = 30,
-      scrollIntoView = true,
-    } = payload || {};
+    const { from, to, scrollIntoView = true } = payload || {};
 
-    console.log('开始拖拽操作:', { fromSelector, toSelector, from, to });
+    // 固定的拖拽参数
+    const durationMs = 300;
+    const steps = 20;
+    const holdDelayMs = 50;
+    const releaseDelayMs = 30;
 
-    const start = coordsFromEither(from, fromSelector);
-    const end = coordsFromEither(to, toSelector);
+    if (!from || !to) {
+      throw new Error(
+        'Both from and to parameters are required. They can be either coordinates {x, y} or element selector strings.',
+      );
+    }
 
-    // 优先使用选择器指定的元素，回退到坐标点击中的元素
-    const startTarget = getTargetBySelectorOrPoint(fromSelector, start);
-    const endTarget = getTargetBySelectorOrPoint(toSelector, end);
+    console.log('开始拖拽操作:', { from, to });
+
+    const start = coordsFromEither(from);
+    const end = coordsFromEither(to);
+
+    // 根据参数类型获取目标元素
+    const startTarget = getTargetBySelectorOrPoint(from, start);
+    const endTarget = getTargetBySelectorOrPoint(to, end);
 
     console.log('拖拽目标元素:', {
       startTarget: startTarget.tagName,

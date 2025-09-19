@@ -542,41 +542,42 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        fromSelector: { type: 'string', description: 'CSS selector of the drag start element' },
-        toSelector: { type: 'string', description: 'CSS selector of the drop target element' },
         from: {
-          type: 'object',
-          description: 'Start coordinates if not using fromSelector',
-          properties: { x: { type: 'number' }, y: { type: 'number' } },
-          required: ['x', 'y'],
+          oneOf: [
+            {
+              type: 'string',
+              description: 'CSS selector of the drag start element',
+            },
+            {
+              type: 'object',
+              description: 'Start coordinates {x, y}',
+              properties: { x: { type: 'number' }, y: { type: 'number' } },
+              required: ['x', 'y'],
+              additionalProperties: false,
+            },
+          ],
         },
         to: {
-          type: 'object',
-          description: 'End coordinates if not using toSelector',
-          properties: { x: { type: 'number' }, y: { type: 'number' } },
-          required: ['x', 'y'],
-        },
-        durationMs: { type: 'number', description: 'Total drag duration in ms (default: 300)' },
-        steps: { type: 'number', description: 'Number of interpolation steps (default: 20)' },
-        holdDelayMs: {
-          type: 'number',
-          description: 'Delay after press before moving (default: 50)',
-        },
-        releaseDelayMs: {
-          type: 'number',
-          description: 'Delay before release at end (default: 30)',
+          oneOf: [
+            {
+              type: 'string',
+              description: 'CSS selector of the drop target element',
+            },
+            {
+              type: 'object',
+              description: 'End coordinates {x, y}',
+              properties: { x: { type: 'number' }, y: { type: 'number' } },
+              required: ['x', 'y'],
+              additionalProperties: false,
+            },
+          ],
         },
         scrollIntoView: {
           type: 'boolean',
           description: 'Scroll start/end into view (default: true)',
         },
       },
-      anyOf: [
-        { required: ['fromSelector', 'toSelector'] },
-        { required: ['from', 'to'] },
-        { required: ['fromSelector', 'to'] },
-        { required: ['from', 'toSelector'] },
-      ],
+      required: ['from', 'to'],
       additionalProperties: false,
     },
   },

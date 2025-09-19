@@ -1,45 +1,28 @@
 /* eslint-disable */
-(() => {
-  const EVENT_NAME = {
-    RESPONSE: 'chrome-mcp:response',
-    CLEANUP: 'chrome-mcp:cleanup',
-    EXECUTE: 'chrome-mcp:execute',
-  };
+if (window.__DRAG_HELPER_INITIALIZED__) {
+} else {
+  window.__DRAG_HELPER_INITIALIZED__ = true;
 
-  function getMouseButtonCode(button) {
-    switch (button) {
-      case 'middle':
-        return 1;
-      case 'right':
-        return 2;
-      case 'left':
-      default:
-        return 0;
-    }
-  }
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  function sleep(ms) {
-    return new Promise((r) => setTimeout(r, ms));
-  }
-
-  function centerOf(el) {
+  const centerOf = (el) => {
     const rect = el.getBoundingClientRect();
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-  }
+  };
 
-  function elementFromSelector(selector) {
+  const elementFromSelector = (selector) => {
     const el = document.querySelector(selector);
     if (!el) throw new Error(`Element not found for selector: ${selector}`);
     return el;
-  }
+  };
 
-  function coordsFromEither(point, selector) {
+  const coordsFromEither = (point, selector) => {
     if (point && typeof point.x === 'number' && typeof point.y === 'number') return point;
     if (selector) return centerOf(elementFromSelector(selector));
     throw new Error('Either coordinates or selector must be provided.');
-  }
+  };
 
-  function dispatchPointer(el, type, x, y, opts) {
+  const dispatchPointer = (el, type, x, y) => {
     const init = {
       bubbles: true,
       cancelable: true,
@@ -49,26 +32,80 @@
       pointerId: 1,
       pointerType: 'mouse',
       isPrimary: true,
-      buttons: opts.buttons ?? 1,
-      button: opts.button ?? 0,
+      button: 0,
+      buttons: 1,
     };
     const evt = new PointerEvent(type, init);
     el.dispatchEvent(evt);
-  }
+  };
 
-  function dispatchMouse(el, type, x, y, opts) {
+  const dispatchMouse = (el, type, x, y) => {
     const init = {
       bubbles: true,
       cancelable: true,
       composed: true,
       clientX: x,
       clientY: y,
-      buttons: opts.buttons ?? 1,
-      button: opts.button ?? 0,
+      button: 0,
+      buttons: 1,
     };
     const evt = new MouseEvent(type, init);
     el.dispatchEvent(evt);
-  }
+  };
+
+  const dispatchDrag = (el = document, type, x, y, transfer = null) => {
+    el.dispatchEvent(
+      new DragEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        button: 0,
+        buttons: 1,
+        clientX: x,
+        clientY: y,
+        dataTransfer: transfer,
+      }),
+    );
+  };
+
+  // 同时分发 Pointer 与 Mouse 事件
+  const dispatchBothEvents = (element, type, x, y) => {
+    if ('PointerEvent' in window) {
+      dispatchPointer(element, type.replace('mouse', 'pointer'), x, y);
+    }
+    dispatchMouse(element, type.replace('pointer', 'mouse'), x, y);
+  };
+
+  // 根据选择器或坐标获取目标元素（含回退）
+  const getTargetBySelectorOrPoint = (selector, point) => {
+    if (selector) {
+      try {
+        return elementFromSelector(selector);
+      } catch (e) {
+        console.warn('选择器未找到元素，使用坐标定位:', e.message);
+        return document.elementFromPoint(point.x, point.y) || document.body;
+      }
+    }
+    return document.elementFromPoint(point.x, point.y) || document.body;
+  };
+
+  // 可选滚动到视图中心
+  const maybeScrollIntoView = async (el, enabled) => {
+    if (!enabled || !el || !el.scrollIntoView) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    await sleep(100);
+  };
+
+  // 线性插值拖拽路径生成与移动
+  const moveAlongPath = async (target, start, end, steps, stepDelay) => {
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const x = start.x + (end.x - start.x) * t;
+      const y = start.y + (end.y - start.y) * t;
+      dispatchBothEvents(target, 'mousemove', x, y);
+      if (stepDelay > 0) await sleep(stepDelay);
+    }
+  };
 
   async function performDrag(payload) {
     const {
@@ -78,104 +115,95 @@
       to,
       durationMs = 300,
       steps = 20,
-      button = 'left',
       holdDelayMs = 50,
       releaseDelayMs = 30,
-      usePointerEvents = true,
       scrollIntoView = true,
     } = payload || {};
+
+    console.log('开始拖拽操作:', { fromSelector, toSelector, from, to });
 
     const start = coordsFromEither(from, fromSelector);
     const end = coordsFromEither(to, toSelector);
 
-    // 定位事件目标元素（尽量在起点处命中最前元素）
-    const startTarget = document.elementFromPoint(start.x, start.y) || document.body;
-    const endTarget = document.elementFromPoint(end.x, end.y) || document.body;
+    // 优先使用选择器指定的元素，回退到坐标点击中的元素
+    const startTarget = getTargetBySelectorOrPoint(fromSelector, start);
+    const endTarget = getTargetBySelectorOrPoint(toSelector, end);
 
-    if (scrollIntoView) {
-      if (startTarget && startTarget.scrollIntoView)
-        startTarget.scrollIntoView({ block: 'center' });
-      if (endTarget && endTarget.scrollIntoView) endTarget.scrollIntoView({ block: 'center' });
+    console.log('拖拽目标元素:', {
+      startTarget: startTarget.tagName,
+      endTarget: endTarget.tagName,
+    });
+
+    await maybeScrollIntoView(startTarget, scrollIntoView);
+    await maybeScrollIntoView(endTarget, scrollIntoView);
+
+    // 检查元素是否具有 draggable 属性
+    const isDraggable = startTarget.draggable || startTarget.getAttribute('draggable') === 'true';
+    console.log('元素是否可拖拽:', isDraggable);
+
+    if (isDraggable) {
+      // HTML5 原生拖拽流程
+      try {
+        const dt = new DataTransfer();
+        dispatchDrag(startTarget, 'dragstart', start.x, start.y, dt);
+        dispatchDrag(endTarget, 'dragenter', end.x, end.y, dt);
+        dispatchDrag(endTarget, 'dragover', end.x, end.y, dt);
+        dispatchDrag(endTarget, 'drop', end.x, end.y, dt);
+        dispatchDrag(startTarget, 'dragend', end.x, end.y, dt);
+        console.log('拖拽完成（DataTransfer 版）');
+      } catch (e) {
+        console.warn('原生拖拽触发失败，回退到模拟拖拽。', e);
+      }
     }
 
-    const buttonCode = getMouseButtonCode(button);
+    if (!isDraggable) {
+      // 阶段1: 鼠标悬停和按下
+      console.log('阶段1: 鼠标按下');
+      dispatchBothEvents(startTarget, 'mouseover', start.x, start.y);
+      dispatchBothEvents(startTarget, 'mouseenter', start.x, start.y);
+      dispatchBothEvents(startTarget, 'mousemove', start.x, start.y);
+      dispatchBothEvents(startTarget, 'mousedown', start.x, start.y);
 
-    const dispatch = usePointerEvents && 'PointerEvent' in window ? dispatchPointer : dispatchMouse;
+      if (holdDelayMs > 0) await sleep(holdDelayMs);
 
-    // 按下
-    dispatch(startTarget, 'pointerover', start.x, start.y, { buttons: 0, button: buttonCode });
-    dispatch(startTarget, 'pointermove', start.x, start.y, { buttons: 0, button: buttonCode });
-    dispatch(startTarget, 'pointerdown', start.x, start.y, { buttons: 1, button: buttonCode });
+      // 阶段2: 拖拽移动
+      console.log('阶段2: 拖拽移动');
+      const stepDelay = Math.max(1, Math.floor(durationMs / Math.max(1, steps)));
+      await moveAlongPath(startTarget, start, end, steps, stepDelay);
 
-    // 触发 HTML5 dragstart（尽量）
-    const dragStart = new DragEvent('dragstart', {
-      bubbles: true,
-      cancelable: true,
-      clientX: start.x,
-      clientY: start.y,
-    });
-    startTarget.dispatchEvent(dragStart);
+      if (releaseDelayMs > 0) await sleep(releaseDelayMs);
 
-    if (holdDelayMs > 0) await sleep(holdDelayMs);
-
-    // 移动（插值）
-    for (let i = 1; i <= steps; i++) {
-      const t = i / steps;
-      const x = start.x + (end.x - start.x) * t;
-      const y = start.y + (end.y - start.y) * t;
-      const moveTarget = document.elementFromPoint(x, y) || document.body;
-      dispatch(moveTarget, 'pointermove', x, y, { buttons: 1, button: buttonCode });
-      const dragOver = new DragEvent('dragover', {
-        bubbles: true,
-        cancelable: true,
-        clientX: x,
-        clientY: y,
-      });
-      moveTarget.dispatchEvent(dragOver);
-      await sleep(durationMs / steps);
+      // 阶段3: 释放和放置
+      console.log('阶段3: 鼠标释放');
+      dispatchBothEvents(endTarget, 'mouseup', end.x, end.y);
+      dispatchBothEvents(endTarget, 'click', end.x, end.y);
+      console.log('拖拽操作完成');
     }
 
-    if (releaseDelayMs > 0) await sleep(releaseDelayMs);
-
-    // 松开
-    const dropTarget = document.elementFromPoint(end.x, end.y) || document.body;
-    const drop = new DragEvent('drop', {
-      bubbles: true,
-      cancelable: true,
-      clientX: end.x,
-      clientY: end.y,
-    });
-    dropTarget.dispatchEvent(drop);
-
-    dispatch(dropTarget, 'pointerup', end.x, end.y, { buttons: 0, button: buttonCode });
-    const dragEnd = new DragEvent('dragend', {
-      bubbles: true,
-      cancelable: true,
-      clientX: end.x,
-      clientY: end.y,
-    });
-    (document.elementFromPoint(start.x, start.y) || startTarget).dispatchEvent(dragEnd);
-
-    return { start, end };
+    return {
+      start,
+      end,
+      startTarget: startTarget.tagName,
+      endTarget: endTarget.tagName,
+      isDraggable,
+    };
   }
 
-  const onExecute = async (event) => {
-    const { action, payload, requestId } = event.detail || {};
-    if (action !== 'drag') return;
-    try {
-      const data = await performDrag(payload);
-      window.dispatchEvent(new CustomEvent(EVENT_NAME.RESPONSE, { detail: { requestId, data } }));
-    } catch (error) {
-      window.dispatchEvent(
-        new CustomEvent(EVENT_NAME.RESPONSE, {
-          detail: { requestId, error: error instanceof Error ? error.message : String(error) },
-        }),
-      );
+  chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+    if (request && request.action === 'dragElement') {
+      (async () => {
+        try {
+          const data = await performDrag(request.options || request);
+          sendResponse({ success: true, message: '拖拽完成', data });
+        } catch (err) {
+          const msg = err && err.message ? err.message : String(err);
+          sendResponse({ success: false, error: msg });
+        }
+      })();
+      return true; // 异步响应
+    } else if (request && request.action === 'chrome_drag_element_ping') {
+      sendResponse({ status: 'pong' });
+      return false;
     }
-  };
-
-  window.addEventListener(EVENT_NAME.EXECUTE, onExecute);
-  window.addEventListener(EVENT_NAME.CLEANUP, () => {
-    window.removeEventListener(EVENT_NAME.EXECUTE, onExecute);
   });
-})();
+}

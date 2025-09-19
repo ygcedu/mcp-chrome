@@ -558,11 +558,6 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         durationMs: { type: 'number', description: 'Total drag duration in ms (default: 300)' },
         steps: { type: 'number', description: 'Number of interpolation steps (default: 20)' },
-        button: {
-          type: 'string',
-          enum: ['left', 'middle', 'right'],
-          description: 'Mouse button (default: left)',
-        },
         holdDelayMs: {
           type: 'number',
           description: 'Delay after press before moving (default: 50)',
@@ -570,10 +565,6 @@ export const TOOL_SCHEMAS: Tool[] = [
         releaseDelayMs: {
           type: 'number',
           description: 'Delay before release at end (default: 30)',
-        },
-        usePointerEvents: {
-          type: 'boolean',
-          description: 'Use Pointer events when available (default: true)',
         },
         scrollIntoView: {
           type: 'boolean',

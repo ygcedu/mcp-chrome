@@ -14,10 +14,8 @@ interface DragParams {
   to?: DragPoint;
   durationMs?: number;
   steps?: number;
-  button?: 'left' | 'middle' | 'right';
   holdDelayMs?: number;
   releaseDelayMs?: number;
-  usePointerEvents?: boolean;
   scrollIntoView?: boolean;
 }
 
@@ -32,10 +30,8 @@ class DragTool extends BaseBrowserToolExecutor {
       to,
       durationMs = 300,
       steps = 20,
-      button = 'left',
       holdDelayMs = 50,
       releaseDelayMs = 30,
-      usePointerEvents = true,
       scrollIntoView = true,
     } = args || {};
 
@@ -66,27 +62,19 @@ class DragTool extends BaseBrowserToolExecutor {
       }
 
       // 注入桥和拖拽脚本（MAIN 世界）
-      await this.injectContentScript(
-        tab.id,
-        ['inject-scripts/inject-bridge.js', 'inject-scripts/drag-helper.js'],
-        undefined,
-        'MAIN',
-      );
+      await this.injectContentScript(tab.id, ['inject-scripts/drag-helper.js']);
 
       const result = await this.sendMessageToTab(tab.id, {
-        targetWorld: 'MAIN',
-        action: 'drag',
-        payload: {
+        action: 'dragElement',
+        options: {
           fromSelector,
           toSelector,
           from,
           to,
           durationMs,
           steps,
-          button,
           holdDelayMs,
           releaseDelayMs,
-          usePointerEvents,
           scrollIntoView,
         },
       });

@@ -953,18 +953,18 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
       if (!tabToOperateOn?.id) {
         return createErrorResponse('无法识别或创建目标标签页。');
       }
-      const tabId = tabToOperateOn.id;
+      const targetTabId = tabToOperateOn.id;
 
       // Use startCaptureForTab method to start capture
       try {
-        await this.startCaptureForTab(tabId, {
+        await this.startCaptureForTab(targetTabId, {
           maxCaptureTime,
           inactivityTimeout,
           includeStatic,
         });
       } catch (error: any) {
         return createErrorResponse(
-          `启动标签页 ${tabId} 捕获失败: ${error.message || String(error)}`,
+          `启动标签页 ${targetTabId} 捕获失败: ${error.message || String(error)}`,
         );
       }
 
@@ -974,8 +974,8 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: `标签页 ${tabId} 上的网络捕获已启动。等待停止命令或超时。`,
-              tabId,
+              message: `标签页 ${targetTabId} 上的网络捕获已启动。等待停止命令或超时。`,
+              tabId: targetTabId,
               url: tabToOperateOn.url,
               maxCaptureTime,
               inactivityTimeout,

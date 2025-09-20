@@ -16,16 +16,6 @@ interface DragParams {
   scrollIntoView?: boolean;
 }
 
-async function getLastTab() {
-  // 获取当前窗口的所有标签页
-  const allTabs = await chrome.tabs.query({ currentWindow: true });
-
-  // 找到最后一个标签页（index最大的）
-  const lastTab = allTabs.reduce((prev, current) => (current.index > prev.index ? current : prev));
-
-  return lastTab;
-}
-
 class DragTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.DRAG;
 

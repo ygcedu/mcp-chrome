@@ -1,10 +1,11 @@
 export { navigateTool } from './common/navigate';
 export { closeTabsTool } from './common/close-tabs';
-export { goBackOrForwardTool } from './common/history';
+export { goBackOrForwardTool } from './common/go-back-or-forward';
 export { windowTool } from './window';
 export { vectorSearchTabsContentTool as searchTabsContentTool } from './vector-search';
 export { screenshotTool } from './screenshot';
-export { webFetcherTool, getInteractiveElementsTool } from './web-fetcher';
+export { webFetcherTool } from './web-fetcher/fetch';
+export { getInteractiveElementsTool } from './web-fetcher/interactive-elements';
 export { clickTool } from './interaction/click';
 export { fillTool } from './interaction/fill';
 export { hoverTool } from './interaction/hover';

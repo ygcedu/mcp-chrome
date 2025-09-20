@@ -2,6 +2,7 @@ import { createErrorResponse, ToolResult } from '@/common/tool-handler';
 import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from 'chrome-mcp-shared';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
+import { hoverByDebugger } from '@/utils/debugger-mouse';
 import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
 
 interface Coordinates {
@@ -225,96 +226,27 @@ class HoverTool extends BaseBrowserToolExecutor {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': 标签页没有 ID');
       }
 
-      // 使用 Debugger 协议模拟鼠标移动实现 hover
-      // 1) 在页面中计算元素中心点（通过一次性脚本获取）
-      const { centerX, centerY, elementInfo } = (
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          world: 'MAIN',
-          func: (sel: string) => {
-            const el = document.querySelector(sel);
-            if (!el) {
-              throw new Error(`未找到选择器为 "${sel}" 的元素`);
-            }
-            el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
-            const rect = el.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-            const info = {
-              tagName: el.tagName,
-              id: (el as HTMLElement).id || '',
-              className: (el as HTMLElement).className || '',
-              text: (el.textContent || '').trim().slice(0, 100),
-              rect: {
-                x: rect.x,
-                y: rect.y,
-                width: rect.width,
-                height: rect.height,
-                top: rect.top,
-                right: rect.right,
-                bottom: rect.bottom,
-                left: rect.left,
-              },
-            };
-            return { centerX: cx, centerY: cy, elementInfo: info };
-          },
-          args: [selector],
-        })
-      )[0].result as { centerX: number; centerY: number; elementInfo: any };
-
-      // 2) 附加 Debugger，发送 Input.dispatchMouseEvent (mouseMoved) 实现 hover
-      const target = { tabId: tab.id } as chrome.debugger.Debuggee;
-      // 如果已被其它客户端（如 DevTools）占用，需要给出错误
-      const targets = await chrome.debugger.getTargets();
-      const occupied = targets.find((t) => t.tabId === tab.id && t.attached && !t.extensionId);
-      if (occupied) {
-        return createErrorResponse(
-          `调试器已被其它客户端占用，无法在标签页 ${tab.id} 上模拟鼠标移动进行悬停。`,
-        );
-      }
-
-      let attached = false;
+      // 使用封装的 Debugger 模拟 hover 方法
       try {
-        await chrome.debugger.attach(target, '1.3');
-        attached = true;
+        const { elementInfo, hoverPosition } = await hoverByDebugger(tab.id, selector);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: true,
+                message: '悬停操作成功',
+                elementInfo,
+                hoverPosition,
+                method: 'debugger.mouseMoved',
+              }),
+            },
+          ],
+          isError: false,
+        };
       } catch (e: any) {
-        return createErrorResponse(`附加调试器失败: ${e?.message || String(e)}`);
+        return createErrorResponse(e?.message || String(e));
       }
-
-      try {
-        // 发送一次 mouseMoved 到元素中心
-        await chrome.debugger.sendCommand(target, 'Input.dispatchMouseEvent', {
-          type: 'mouseMoved',
-          x: Math.max(0, Math.round(centerX)),
-          y: Math.max(0, Math.round(centerY)),
-          buttons: 0,
-          // 可选：设置一个小的移动轨迹（多次调用）以更接近真实鼠标
-        });
-      } catch (e: any) {
-        return createErrorResponse(`发送鼠标移动事件失败: ${e?.message || String(e)}`);
-      } finally {
-        try {
-          // await chrome.debugger.detach(target);
-        } catch (e) {
-          console.warn('分离调试器失败（可能已分离）:', e);
-        }
-      }
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: '悬停操作成功',
-              elementInfo,
-              hoverPosition: { x: Math.round(centerX), y: Math.round(centerY) },
-              method: 'debugger.mouseMoved',
-            }),
-          },
-        ],
-        isError: false,
-      };
     } catch (error) {
       console.error('悬停操作中出错:', error);
       return createErrorResponse(

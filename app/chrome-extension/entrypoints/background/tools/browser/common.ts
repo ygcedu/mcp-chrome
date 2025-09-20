@@ -414,6 +414,7 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
 export const closeTabsTool = new CloseTabsTool();
 
 interface GoBackOrForwardToolParams {
+  tabId?: number;
   isForward?: boolean;
 }
 
@@ -424,29 +425,38 @@ class GoBackOrForwardTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.GO_BACK_OR_FORWARD;
 
   async execute(args: GoBackOrForwardToolParams): Promise<ToolResult> {
-    const { isForward = false } = args;
+    const { tabId, isForward = false } = args;
 
     console.log(`尝试在浏览器历史中${isForward ? '前进' : '后退'}`);
 
     try {
-      // 获取当前活动标签页
-      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-      if (!activeTab || !activeTab.id) {
-        return createErrorResponse('未找到活动标签页');
+      // 获取目标标签页
+      let targetTab: chrome.tabs.Tab;
+      if (tabId) {
+        try {
+          targetTab = await chrome.tabs.get(tabId);
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else {
+        const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!activeTab || !activeTab.id) {
+          return createErrorResponse('未找到活动标签页');
+        }
+        targetTab = activeTab;
       }
 
       // 根据 isForward 参数向后或向前导航
       if (isForward) {
-        await chrome.tabs.goForward(activeTab.id);
-        console.log(`在标签页 ID: ${activeTab.id} 中前进`);
+        await chrome.tabs.goForward(targetTab.id!);
+        console.log(`在标签页 ID: ${targetTab.id} 中前进`);
       } else {
-        await chrome.tabs.goBack(activeTab.id);
-        console.log(`在标签页 ID: ${activeTab.id} 中后退`);
+        await chrome.tabs.goBack(targetTab.id!);
+        console.log(`在标签页 ID: ${targetTab.id} 中后退`);
       }
 
       // 获取更新的标签页信息
-      const updatedTab = await chrome.tabs.get(activeTab.id);
+      const updatedTab = await chrome.tabs.get(targetTab.id!);
 
       return {
         content: [

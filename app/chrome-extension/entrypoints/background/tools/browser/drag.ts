@@ -8,6 +8,7 @@ interface DragPoint {
   y: number;
 }
 interface DragParams {
+  tabId?: number;
   from?: DragPoint;
   to?: DragPoint;
   fromElement?: string;
@@ -29,7 +30,7 @@ class DragTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.DRAG;
 
   async execute(args: DragParams): Promise<ToolResult> {
-    const { from, to, fromElement, toElement, scrollIntoView = true } = args || {};
+    const { tabId, from, to, fromElement, toElement, scrollIntoView = true } = args || {};
 
     // 检查是否至少提供了一组有效的参数
     if (!from && !fromElement) {
@@ -47,11 +48,21 @@ class DragTool extends BaseBrowserToolExecutor {
     }
 
     try {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const tab = tabs[0];
-
-      // 用最后一个页面测试
-      // const tab = await getLastTab();
+      // 获取目标标签页
+      let tab: chrome.tabs.Tab;
+      if (tabId) {
+        try {
+          tab = await chrome.tabs.get(tabId);
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs[0] || !tabs[0].id) {
+          return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
+        }
+        tab = tabs[0];
+      }
 
       if (!tab || !tab.id) {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);

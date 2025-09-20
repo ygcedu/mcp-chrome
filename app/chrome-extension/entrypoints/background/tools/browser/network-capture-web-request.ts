@@ -46,6 +46,7 @@ const STATIC_RESOURCE_EXTENSIONS = [
 const AD_ANALYTICS_DOMAINS = NETWORK_FILTERS.EXCLUDED_DOMAINS;
 
 interface NetworkCaptureStartToolParams {
+  tabId?: number; // 指定标签页ID。如果未提供，使用活动标签页或如果提供了url则创建新标签页。
   url?: string; // 要导航到或聚焦的URL。如果未提供，使用活动标签页。
   maxCaptureTime?: number; // 最大捕获时间（毫秒）
   inactivityTimeout?: number; // 非活动超时（毫秒）
@@ -773,6 +774,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
 
   async execute(args: NetworkCaptureStartToolParams): Promise<ToolResult> {
     const {
+      tabId,
       url: targetUrl,
       maxCaptureTime = 3 * 60 * 1000, // 默认3分钟
       inactivityTimeout = 60 * 1000, // 默认1分钟非活动后自动停止
@@ -785,7 +787,15 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       // 获取当前标签页或创建新标签页
       let tabToOperateOn: chrome.tabs.Tab;
 
-      if (targetUrl) {
+      if (tabId) {
+        // 使用指定的标签页
+        try {
+          tabToOperateOn = await chrome.tabs.get(tabId);
+          console.log(`网络捕获V2: 使用指定的标签页 ${tabId}`);
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else if (targetUrl) {
         // 查找匹配URL的标签页
         const matchingTabs = await chrome.tabs.query({ url: targetUrl });
 

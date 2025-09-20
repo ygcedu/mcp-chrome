@@ -69,6 +69,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab to take screenshot from. If not provided, uses the current active tab',
+        },
         name: { type: 'string', description: 'Name for the screenshot, if saving as PNG' },
         selector: { type: 'string', description: 'CSS selector for element to screenshot' },
         width: { type: 'number', description: 'Width in pixels (default: 800)' },
@@ -116,6 +121,10 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description: 'ID of the tab to navigate. If not provided, uses the current active tab',
+        },
         isForward: {
           type: 'boolean',
           description: 'Go forward in history if true, go back if false (default: false)',
@@ -130,6 +139,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab to fetch content from. If not provided, uses the current active tab or creates new tab if url is provided',
+        },
         url: {
           type: 'string',
           description: 'URL to fetch content from. If not provided, uses the current active tab',
@@ -160,6 +174,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab to perform click operation. If not provided, uses the current active tab',
+        },
         selector: {
           type: 'string',
           description:
@@ -200,6 +219,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab to perform fill operation. If not provided, uses the current active tab',
+        },
         selector: {
           type: 'string',
           description: 'CSS selector for the input element to fill or select',
@@ -218,6 +242,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab to get interactive elements from. If not provided, uses the current active tab',
+        },
         textQuery: {
           type: 'string',
           description: 'Text to search for within interactive elements (fuzzy search)',
@@ -241,6 +270,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab to send request from (for browser context). If not provided, uses the current active tab',
+        },
         url: {
           type: 'string',
           description: 'URL to send the request to',
@@ -272,6 +306,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab to capture network requests from. If not provided, uses the current active tab or creates new tab if url is provided',
+        },
         url: {
           type: 'string',
           description:
@@ -298,6 +337,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab to capture network requests from. If not provided, uses the current active tab or creates new tab if url is provided',
+        },
         url: {
           type: 'string',
           description:
@@ -323,6 +367,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab to send keyboard events to. If not provided, uses the current active tab',
+        },
         keys: {
           type: 'string',
           description: 'Keys to simulate (e.g., "Enter", "Ctrl+C", "A,B,C" for sequence)',
@@ -470,6 +519,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab to inject script into. If not provided, uses the current active tab or creates new tab if url is provided',
+        },
         url: {
           type: 'string',
           description:
@@ -519,6 +573,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab to capture console from. If not provided, uses the current active tab or creates new tab if url is provided',
+        },
         url: {
           type: 'string',
           description:
@@ -542,6 +601,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab to perform drag operation. If not provided, uses the current active tab',
+        },
         from: {
           type: 'object',
           description: 'Start coordinates {x, y}',
@@ -582,6 +646,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'ID of the tab for user element selection. If not provided, uses the current active tab',
+        },
         prompt: {
           type: 'string',
           description:

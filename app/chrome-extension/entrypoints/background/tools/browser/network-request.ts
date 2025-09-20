@@ -6,6 +6,7 @@ import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 const DEFAULT_NETWORK_REQUEST_TIMEOUT = 30000; // 通过内容脚本发送单个请求的超时时间
 
 interface NetworkRequestToolParams {
+  tabId?: number; // 可选的标签页ID
   url: string; // URL始终是必需的
   method?: string; // 默认为GET
   headers?: Record<string, string>; // 用户提供的头部
@@ -21,6 +22,7 @@ class NetworkRequestTool extends BaseBrowserToolExecutor {
 
   async execute(args: NetworkRequestToolParams): Promise<ToolResult> {
     const {
+      tabId,
       url,
       method = 'GET',
       headers = {},
@@ -35,20 +37,31 @@ class NetworkRequestTool extends BaseBrowserToolExecutor {
     }
 
     try {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tabs[0]?.id) {
-        return createErrorResponse('未找到活动标签页或标签页没有ID。');
+      // 获取目标标签页
+      let targetTabId: number;
+      if (tabId) {
+        try {
+          await chrome.tabs.get(tabId);
+          targetTabId = tabId;
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs[0]?.id) {
+          return createErrorResponse('未找到活动标签页或标签页没有ID。');
+        }
+        targetTabId = tabs[0].id;
       }
-      const activeTabId = tabs[0].id;
 
       // 确保内容脚本在目标标签页中可用
-      await this.injectContentScript(activeTabId, ['inject-scripts/network-helper.js']);
+      await this.injectContentScript(targetTabId, ['inject-scripts/network-helper.js']);
 
       console.log(
         `网络请求工具: 发送到内容脚本: URL=${url}, Method=${method}, Headers=${Object.keys(headers).join(',')}, BodyType=${typeof body}`,
       );
 
-      const resultFromContentScript = await this.sendMessageToTab(activeTabId, {
+      const resultFromContentScript = await this.sendMessageToTab(targetTabId, {
         action: TOOL_MESSAGE_TYPES.NETWORK_SEND_REQUEST,
         url: url,
         method: method,

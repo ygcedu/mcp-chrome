@@ -10,6 +10,7 @@ interface Coordinates {
 }
 
 interface ClickToolParams {
+  tabId?: number; // 可选的标签页ID
   selector?: string; // 要点击元素的 CSS 选择器
   coordinates?: Coordinates; // 要点击的坐标（相对于视口的 x, y）
   waitForNavigation?: boolean; // 是否等待点击后导航完成
@@ -27,6 +28,7 @@ class ClickTool extends BaseBrowserToolExecutor {
    */
   async execute(args: ClickToolParams): Promise<ToolResult> {
     const {
+      tabId,
       selector,
       coordinates,
       waitForNavigation = false,
@@ -40,15 +42,24 @@ class ClickTool extends BaseBrowserToolExecutor {
     }
 
     try {
-      // 获取当前标签页
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tabs[0]) {
-        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
+      // 获取目标标签页
+      let tab: chrome.tabs.Tab;
+      if (tabId) {
+        try {
+          tab = await chrome.tabs.get(tabId);
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs[0]) {
+          return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
+        }
+        tab = tabs[0];
       }
 
-      const tab = tabs[0];
       if (!tab.id) {
-        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': 活动标签页没有 ID');
+        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': 标签页没有 ID');
       }
 
       await this.injectContentScript(tab.id, ['inject-scripts/click-helper.js']);
@@ -89,6 +100,7 @@ class ClickTool extends BaseBrowserToolExecutor {
 export const clickTool = new ClickTool();
 
 interface FillToolParams {
+  tabId?: number; // 可选的标签页ID
   selector: string;
   value: string;
 }
@@ -103,7 +115,7 @@ class FillTool extends BaseBrowserToolExecutor {
    * 执行填充操作
    */
   async execute(args: FillToolParams): Promise<ToolResult> {
-    const { selector, value } = args;
+    const { tabId, selector, value } = args;
 
     console.log(`开始填充操作，选项:`, args);
 
@@ -116,15 +128,24 @@ class FillTool extends BaseBrowserToolExecutor {
     }
 
     try {
-      // 获取当前标签页
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tabs[0]) {
-        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
+      // 获取目标标签页
+      let tab: chrome.tabs.Tab;
+      if (tabId) {
+        try {
+          tab = await chrome.tabs.get(tabId);
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs[0]) {
+          return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
+        }
+        tab = tabs[0];
       }
 
-      const tab = tabs[0];
       if (!tab.id) {
-        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': 活动标签页没有 ID');
+        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': 标签页没有 ID');
       }
 
       await this.injectContentScript(tab.id, ['inject-scripts/fill-helper.js']);

@@ -4,6 +4,7 @@ import { TOOL_NAMES } from 'chrome-mcp-shared';
 import { ExecutionWorld } from '@/common/constants';
 
 interface InjectScriptParam {
+  tabId?: number;
   url?: string;
 }
 interface ScriptConfig {
@@ -22,14 +23,22 @@ class InjectScriptTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.INJECT_SCRIPT;
   async execute(args: InjectScriptParam & ScriptConfig): Promise<ToolResult> {
     try {
-      const { url, type, jsScript } = args;
+      const { tabId, url, type, jsScript } = args;
       let tab;
 
       if (!type || !jsScript) {
         return createErrorResponse('参数 [type] 和 [jsScript] 是必需的');
       }
 
-      if (url) {
+      if (tabId) {
+        // 如果提供了tabId，使用指定的标签页
+        try {
+          tab = await chrome.tabs.get(tabId);
+          console.log(`使用指定的标签页 ID: ${tabId}`);
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else if (url) {
         // 如果提供了URL，检查是否已经打开
         console.log(`检查URL是否已经打开: ${url}`);
         const allTabs = await chrome.tabs.query({});

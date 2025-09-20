@@ -6,6 +6,7 @@ const DEBUGGER_PROTOCOL_VERSION = '1.3';
 const DEFAULT_MAX_MESSAGES = 100;
 
 interface ConsoleToolParams {
+  tabId?: number;
   url?: string;
   includeExceptions?: boolean;
   maxMessages?: number;
@@ -54,12 +55,19 @@ class ConsoleTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.CONSOLE;
 
   async execute(args: ConsoleToolParams): Promise<ToolResult> {
-    const { url, includeExceptions = true, maxMessages = DEFAULT_MAX_MESSAGES } = args;
+    const { tabId, url, includeExceptions = true, maxMessages = DEFAULT_MAX_MESSAGES } = args;
 
     let targetTab: chrome.tabs.Tab;
 
     try {
-      if (url) {
+      if (tabId) {
+        // 如果提供了tabId，使用指定的标签页
+        try {
+          targetTab = await chrome.tabs.get(tabId);
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else if (url) {
         // 导航到指定的 URL
         targetTab = await this.navigateToUrl(url);
       } else {
@@ -75,10 +83,8 @@ class ConsoleTool extends BaseBrowserToolExecutor {
         return createErrorResponse('无法识别目标标签页。');
       }
 
-      const tabId = targetTab.id;
-
       // 捕获控制台消息（一次性捕获）
-      const result = await this.captureConsoleMessages(tabId, {
+      const result = await this.captureConsoleMessages(targetTab.id, {
         includeExceptions,
         maxMessages,
       });

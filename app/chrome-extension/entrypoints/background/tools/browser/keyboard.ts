@@ -5,6 +5,7 @@ import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
 
 interface KeyboardToolParams {
+  tabId?: number; // 可选的标签页ID
   keys: string; // 必需：表示要模拟的键或组合键的字符串（例如，"Enter"、"Ctrl+C"）
   selector?: string; // 可选：用于发送键盘事件的目标元素的 CSS 选择器
   delay?: number; // 可选：键盘按键之间的延迟（毫秒）
@@ -20,7 +21,7 @@ class KeyboardTool extends BaseBrowserToolExecutor {
    * 执行键盘操作
    */
   async execute(args: KeyboardToolParams): Promise<ToolResult> {
-    const { keys, selector, delay = TIMEOUTS.KEYBOARD_DELAY } = args;
+    const { tabId, keys, selector, delay = TIMEOUTS.KEYBOARD_DELAY } = args;
 
     console.log(`开始键盘操作，选项:`, args);
 
@@ -29,15 +30,24 @@ class KeyboardTool extends BaseBrowserToolExecutor {
     }
 
     try {
-      // 获取当前标签页
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tabs[0]) {
-        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
+      // 获取目标标签页
+      let tab: chrome.tabs.Tab;
+      if (tabId) {
+        try {
+          tab = await chrome.tabs.get(tabId);
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs[0]) {
+          return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
+        }
+        tab = tabs[0];
       }
 
-      const tab = tabs[0];
       if (!tab.id) {
-        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': 活动标签页没有 ID');
+        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': 标签页没有 ID');
       }
 
       await this.injectContentScript(tab.id, ['inject-scripts/keyboard-helper.js']);

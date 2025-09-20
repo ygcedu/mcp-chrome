@@ -4,6 +4,7 @@ import { TOOL_NAMES } from 'chrome-mcp-shared';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 
 interface WebFetcherToolParams {
+  tabId?: number; // 可选的标签页ID
   htmlContent?: boolean; // 获取当前页面的可见HTML内容。默认: false
   textContent?: boolean; // 获取当前页面的可见文本内容。默认: true
   url?: string; // 可选的URL来获取内容（如果未提供，使用活动标签页）
@@ -20,10 +21,10 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
     // 处理互斥参数：如果htmlContent为true，textContent强制为false
     const htmlContent = args.htmlContent === true;
     const textContent = htmlContent ? false : args.textContent !== false; // 默认为true，除非htmlContent为true或textContent明确设置为false
-    const url = args.url;
-    const selector = args.selector;
+    const { tabId, url, selector } = args;
 
     console.log(`使用选项启动网页获取器:`, {
+      tabId,
       htmlContent,
       textContent,
       url,
@@ -34,7 +35,15 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
       // 获取要获取内容的标签页
       let tab;
 
-      if (url) {
+      if (tabId) {
+        // 如果提供了tabId，使用指定的标签页
+        try {
+          tab = await chrome.tabs.get(tabId);
+          console.log(`使用指定的标签页 ID: ${tabId}`);
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else if (url) {
         // 如果提供了URL，检查它是否已经打开
         console.log(`检查URL是否已经打开: ${url}`);
         const allTabs = await chrome.tabs.query({});
@@ -154,6 +163,7 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
 export const webFetcherTool = new WebFetcherTool();
 
 interface GetInteractiveElementsToolParams {
+  tabId?: number; // 可选的标签页ID
   textQuery?: string; // 在交互元素中搜索的文本（模糊搜索）
   selector?: string; // 用于过滤交互元素的CSS选择器
   includeCoordinates?: boolean; // 在响应中包含元素坐标（默认: true）
@@ -167,20 +177,29 @@ class GetInteractiveElementsTool extends BaseBrowserToolExecutor {
    * 执行获取交互元素操作
    */
   async execute(args: GetInteractiveElementsToolParams): Promise<ToolResult> {
-    const { textQuery, selector, includeCoordinates = true, types } = args;
+    const { tabId, textQuery, selector, includeCoordinates = true, types } = args;
 
     console.log(`使用选项启动获取交互元素:`, args);
 
     try {
-      // 获取当前标签页
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tabs[0]) {
-        return createErrorResponse('未找到活动标签页');
+      // 获取目标标签页
+      let tab: chrome.tabs.Tab;
+      if (tabId) {
+        try {
+          tab = await chrome.tabs.get(tabId);
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs[0]) {
+          return createErrorResponse('未找到活动标签页');
+        }
+        tab = tabs[0];
       }
 
-      const tab = tabs[0];
       if (!tab.id) {
-        return createErrorResponse('活动标签页没有ID');
+        return createErrorResponse('标签页没有ID');
       }
 
       // 确保内容脚本被注入

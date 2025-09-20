@@ -3,6 +3,7 @@ import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from 'chrome-mcp-shared';
 
 interface UserSelectorParams {
+  tabId?: number;
   prompt?: string;
   timeout?: number;
   highlightMode?: 'border' | 'overlay' | 'both';
@@ -14,20 +15,36 @@ class UserSelectorTool extends BaseBrowserToolExecutor {
 
   async execute(args: UserSelectorParams): Promise<ToolResult> {
     try {
-      const { prompt, timeout, highlightMode = 'both', selectionType = 'single' } = args || {};
+      const {
+        tabId,
+        prompt,
+        timeout,
+        highlightMode = 'both',
+        selectionType = 'single',
+      } = args || {};
 
-      // 获取当前活动标签页
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tabs[0] || !tabs[0].id) {
-        return createErrorResponse('未找到活动标签页');
+      // 获取目标标签页
+      let targetTabId: number;
+      if (tabId) {
+        try {
+          await chrome.tabs.get(tabId);
+          targetTabId = tabId;
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs[0] || !tabs[0].id) {
+          return createErrorResponse('未找到活动标签页');
+        }
+        targetTabId = tabs[0].id;
       }
-      const tabId = tabs[0].id;
 
       // 注入选择器脚本
-      await this.injectContentScript(tabId, ['inject-scripts/user-selector-helper.js']);
+      await this.injectContentScript(targetTabId, ['inject-scripts/user-selector-helper.js']);
 
       // 发送启动消息
-      const result = await this.sendMessageToTab(tabId, {
+      const result = await this.sendMessageToTab(targetTabId, {
         action: 'startUserSelector',
         options: { prompt, timeout, highlightMode, selectionType },
       });

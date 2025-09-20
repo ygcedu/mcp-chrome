@@ -3,6 +3,7 @@ import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from 'chrome-mcp-shared';
 
 interface NetworkDebuggerStartToolParams {
+  tabId?: number; // Tab ID to capture from. If not provided, uses active tab or creates new tab if url is provided.
   url?: string; // URL to navigate to or focus. If not provided, uses active tab.
   maxCaptureTime?: number;
   inactivityTimeout?: number; // Inactivity timeout (milliseconds)
@@ -903,6 +904,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
 
   async execute(args: NetworkDebuggerStartToolParams): Promise<ToolResult> {
     const {
+      tabId,
       url: targetUrl,
       maxCaptureTime = DEFAULT_MAX_CAPTURE_TIME_MS,
       inactivityTimeout = DEFAULT_INACTIVITY_TIMEOUT_MS,
@@ -910,13 +912,21 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
     } = args;
 
     console.log(
-      `NetworkDebuggerStartTool: Executing with args: url=${targetUrl}, maxTime=${maxCaptureTime}, inactivityTime=${inactivityTimeout}, includeStatic=${includeStatic}`,
+      `NetworkDebuggerStartTool: Executing with args: tabId=${tabId}, url=${targetUrl}, maxTime=${maxCaptureTime}, inactivityTime=${inactivityTimeout}, includeStatic=${includeStatic}`,
     );
 
     let tabToOperateOn: chrome.tabs.Tab | undefined;
 
     try {
-      if (targetUrl) {
+      if (tabId) {
+        // Use specified tab
+        try {
+          tabToOperateOn = await chrome.tabs.get(tabId);
+          console.log(`NetworkDebuggerStartTool: Using specified tab ${tabId}`);
+        } catch (error) {
+          return createErrorResponse(`Tab with ID ${tabId} not found`);
+        }
+      } else if (targetUrl) {
         const existingTabs = await chrome.tabs.query({
           url: targetUrl.startsWith('http') ? targetUrl : `*://*/*${targetUrl}*`,
         }); // More specific query

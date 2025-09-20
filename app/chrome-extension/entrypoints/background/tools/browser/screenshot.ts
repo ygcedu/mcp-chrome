@@ -22,6 +22,7 @@ const SCREENSHOT_CONSTANTS = {
 } as const;
 
 interface ScreenshotToolParams {
+  tabId?: number;
   name: string;
   selector?: string;
   width?: number;
@@ -43,6 +44,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
    */
   async execute(args: ScreenshotToolParams): Promise<ToolResult> {
     const {
+      tabId,
       name = 'screenshot',
       selector,
       storeBase64 = false,
@@ -52,12 +54,21 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
 
     console.log(`开始截图，选项:`, args);
 
-    // 获取当前标签页
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tabs[0]) {
-      return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
+    // 获取目标标签页
+    let tab: chrome.tabs.Tab;
+    if (tabId) {
+      try {
+        tab = await chrome.tabs.get(tabId);
+      } catch (error) {
+        return createErrorResponse(`Tab with ID ${tabId} not found`);
+      }
+    } else {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tabs[0]) {
+        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND);
+      }
+      tab = tabs[0];
     }
-    const tab = tabs[0];
 
     // 检查 URL 限制
     if (

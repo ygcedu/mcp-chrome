@@ -38,6 +38,7 @@ export const CONTENT_MESSAGE_TYPES = {
   NETWORK_CAPTURE_PING: 'network_capture_ping',
   CLICK_HELPER_PING: 'click_helper_ping',
   FILL_HELPER_PING: 'fill_helper_ping',
+  HOVER_HELPER_PING: 'hover_helper_ping',
   KEYBOARD_HELPER_PING: 'keyboard_helper_ping',
   SCREENSHOT_HELPER_PING: 'screenshot_helper_ping',
   INTERACTIVE_ELEMENTS_HELPER_PING: 'interactive_elements_helper_ping',
@@ -59,6 +60,7 @@ export const TOOL_MESSAGE_TYPES = {
   // 用户交互
   CLICK_ELEMENT: 'clickElement',
   FILL_ELEMENT: 'fillElement',
+  HOVER_ELEMENT: 'hoverElement',
   SIMULATE_KEYBOARD: 'simulateKeyboard',
 
   // 交互元素

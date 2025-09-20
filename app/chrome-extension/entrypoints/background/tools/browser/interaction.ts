@@ -184,3 +184,79 @@ class FillTool extends BaseBrowserToolExecutor {
 }
 
 export const fillTool = new FillTool();
+
+interface HoverToolParams {
+  tabId: number; // 必填的标签页ID
+  selector: string; // 必填的CSS选择器
+}
+
+/**
+ * 用于悬停网页元素的工具
+ */
+class HoverTool extends BaseBrowserToolExecutor {
+  name = TOOL_NAMES.BROWSER.HOVER;
+
+  /**
+   * 执行悬停操作
+   */
+  async execute(args: HoverToolParams): Promise<ToolResult> {
+    const { tabId, selector } = args;
+
+    console.log(`开始悬停操作，选项:`, args);
+
+    if (!selector) {
+      return createErrorResponse(ERROR_MESSAGES.INVALID_PARAMETERS + ': 必须提供选择器');
+    }
+
+    if (!tabId) {
+      return createErrorResponse(ERROR_MESSAGES.INVALID_PARAMETERS + ': 必须提供标签页ID');
+    }
+
+    try {
+      // 获取目标标签页
+      let tab: chrome.tabs.Tab;
+      try {
+        tab = await chrome.tabs.get(tabId);
+      } catch (error) {
+        return createErrorResponse(`Tab with ID ${tabId} not found`);
+      }
+
+      if (!tab.id) {
+        return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': 标签页没有 ID');
+      }
+
+      await this.injectContentScript(tab.id, ['inject-scripts/hover-helper.js']);
+
+      // 向内容脚本发送悬停消息
+      const result = await this.sendMessageToTab(tab.id, {
+        action: TOOL_MESSAGE_TYPES.HOVER_ELEMENT,
+        selector,
+      });
+
+      if (result.error) {
+        return createErrorResponse(result.error);
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              message: result.message || '悬停操作成功',
+              elementInfo: result.elementInfo,
+            }),
+          },
+        ],
+        isError: false,
+      };
+    } catch (error) {
+      console.error('悬停操作中出错:', error);
+      return createErrorResponse(
+        `执行悬停时出错: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+}
+
+export const hoverTool = new HoverTool();

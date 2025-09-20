@@ -11,6 +11,7 @@ export const TOOL_NAMES = {
     WEB_FETCHER: 'chrome_get_web_content',
     CLICK: 'chrome_click_element',
     FILL: 'chrome_fill_or_select',
+    HOVER: 'chrome_hover_element',
     GET_INTERACTIVE_ELEMENTS: 'chrome_get_interactive_elements',
     NETWORK_CAPTURE_START: 'chrome_network_capture_start',
     NETWORK_CAPTURE_STOP: 'chrome_network_capture_stop',
@@ -231,6 +232,24 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: ['tabId', 'selector', 'value'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.HOVER,
+    description: 'Hover over an element on the current page',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: {
+          type: 'number',
+          description: 'ID of the tab to perform hover operation',
+        },
+        selector: {
+          type: 'string',
+          description: 'CSS selector for the element to hover over',
+        },
+      },
+      required: ['tabId', 'selector'],
     },
   },
   {

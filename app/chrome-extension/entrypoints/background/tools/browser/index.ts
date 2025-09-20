@@ -3,7 +3,7 @@ export { windowTool } from './window';
 export { vectorSearchTabsContentTool as searchTabsContentTool } from './vector-search';
 export { screenshotTool } from './screenshot';
 export { webFetcherTool, getInteractiveElementsTool } from './web-fetcher';
-export { clickTool, fillTool } from './interaction';
+export { clickTool, fillTool, hoverTool } from './interaction';
 export { networkRequestTool } from './network-request';
 export { networkDebuggerStartTool, networkDebuggerStopTool } from './network-capture-debugger';
 export { networkCaptureStartTool, networkCaptureStopTool } from './network-capture-web-request';

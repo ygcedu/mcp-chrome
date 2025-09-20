@@ -71,8 +71,7 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         tabId: {
           type: 'number',
-          description:
-            'ID of the tab to take screenshot from. If not provided, uses the current active tab',
+          description: 'ID of the tab to take screenshot from',
         },
         name: { type: 'string', description: 'Name for the screenshot, if saving as PNG' },
         selector: { type: 'string', description: 'CSS selector for element to screenshot' },
@@ -93,7 +92,7 @@ export const TOOL_SCHEMAS: Tool[] = [
             'Save screenshot as PNG file (default: true)，if you want to see the page, recommend set this to be false, and set storeBase64 to be true',
         },
       },
-      required: [],
+      required: ['tabId'],
     },
   },
   {
@@ -123,14 +122,14 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         tabId: {
           type: 'number',
-          description: 'ID of the tab to navigate. If not provided, uses the current active tab',
+          description: 'ID of the tab to navigate',
         },
         isForward: {
           type: 'boolean',
           description: 'Go forward in history if true, go back if false (default: false)',
         },
       },
-      required: [],
+      required: ['tabId'],
     },
   },
   {
@@ -176,8 +175,7 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         tabId: {
           type: 'number',
-          description:
-            'ID of the tab to perform click operation. If not provided, uses the current active tab',
+          description: 'ID of the tab to perform click operation',
         },
         selector: {
           type: 'string',
@@ -210,7 +208,7 @@ export const TOOL_SCHEMAS: Tool[] = [
             'Timeout in milliseconds for waiting for the element or navigation (default: 5000)',
         },
       },
-      required: [],
+      required: ['tabId'],
     },
   },
   {
@@ -221,8 +219,7 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         tabId: {
           type: 'number',
-          description:
-            'ID of the tab to perform fill operation. If not provided, uses the current active tab',
+          description: 'ID of the tab to perform fill operation',
         },
         selector: {
           type: 'string',
@@ -233,7 +230,7 @@ export const TOOL_SCHEMAS: Tool[] = [
           description: 'Value to fill or select into the element',
         },
       },
-      required: ['selector', 'value'],
+      required: ['tabId', 'selector', 'value'],
     },
   },
   {
@@ -244,8 +241,7 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         tabId: {
           type: 'number',
-          description:
-            'ID of the tab to get interactive elements from. If not provided, uses the current active tab',
+          description: 'ID of the tab to get interactive elements from',
         },
         textQuery: {
           type: 'string',
@@ -261,7 +257,7 @@ export const TOOL_SCHEMAS: Tool[] = [
           description: 'Include element coordinates in the response (default: true)',
         },
       },
-      required: [],
+      required: ['tabId'],
     },
   },
   {
@@ -272,8 +268,7 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         tabId: {
           type: 'number',
-          description:
-            'ID of the tab to send request from (for browser context). If not provided, uses the current active tab',
+          description: 'ID of the tab to send request from (for browser context)',
         },
         url: {
           type: 'string',
@@ -296,7 +291,7 @@ export const TOOL_SCHEMAS: Tool[] = [
           description: 'Timeout in milliseconds (default: 30000)',
         },
       },
-      required: ['url'],
+      required: ['tabId', 'url'],
     },
   },
   {
@@ -369,8 +364,7 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         tabId: {
           type: 'number',
-          description:
-            'ID of the tab to send keyboard events to. If not provided, uses the current active tab',
+          description: 'ID of the tab to send keyboard events to',
         },
         keys: {
           type: 'string',
@@ -386,7 +380,7 @@ export const TOOL_SCHEMAS: Tool[] = [
           description: 'Delay between key sequences in milliseconds (optional, default: 0)',
         },
       },
-      required: ['keys'],
+      required: ['tabId', 'keys'],
     },
   },
   {
@@ -603,8 +597,7 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         tabId: {
           type: 'number',
-          description:
-            'ID of the tab to perform drag operation. If not provided, uses the current active tab',
+          description: 'ID of the tab to perform drag operation',
         },
         from: {
           type: 'object',
@@ -635,7 +628,7 @@ export const TOOL_SCHEMAS: Tool[] = [
           description: 'Scroll start/end into view (default: true)',
         },
       },
-      required: [],
+      required: ['tabId'],
       additionalProperties: false,
     },
   },
@@ -648,8 +641,7 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         tabId: {
           type: 'number',
-          description:
-            'ID of the tab for user element selection. If not provided, uses the current active tab',
+          description: 'ID of the tab for user element selection',
         },
         prompt: {
           type: 'string',
@@ -671,7 +663,7 @@ export const TOOL_SCHEMAS: Tool[] = [
           description: 'Whether to allow selecting single or multiple elements (default: "single")',
         },
       },
-      required: [],
+      required: ['tabId'],
     },
   },
 ];

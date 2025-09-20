@@ -9,7 +9,7 @@ import {
   cropAndResizeImage,
   stitchImages,
   compressImage,
-} from '../../../../utils/image-utils';
+} from '@/utils/image-utils';
 
 // 截图专用常量
 const SCREENSHOT_CONSTANTS = {
@@ -22,8 +22,8 @@ const SCREENSHOT_CONSTANTS = {
 } as const;
 
 interface ScreenshotToolParams {
-  tabId?: number;
-  name: string;
+  tabId: number;
+  name?: string;
   selector?: string;
   width?: number;
   height?: number;
